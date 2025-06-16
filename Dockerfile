@@ -11,7 +11,7 @@ RUN set -x \
     && apt-get -y install wget curl man git less openssl libssl-dev unzip unar build-essential aria2 tmux vim \
     && apt-get install -y openssh-server sox libsox-fmt-all libsox-fmt-mp3 libsndfile1-dev ffmpeg \
     && apt-get install -y librdmacm1 libibumad3 librdmacm-dev libibverbs1 libibverbs-dev ibverbs-utils ibverbs-providers \
-    && apt-get install nginx ca-certificates \
+    && apt-get install -y nginx ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
     

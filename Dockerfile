@@ -11,20 +11,28 @@ RUN set -x \
     && apt-get -y install wget curl man git less openssl libssl-dev unzip unar build-essential aria2 tmux vim \
     && apt-get install -y openssh-server sox libsox-fmt-all libsox-fmt-mp3 libsndfile1-dev ffmpeg \
     && apt-get install -y librdmacm1 libibumad3 librdmacm-dev libibverbs1 libibverbs-dev ibverbs-utils ibverbs-providers \
+    && apt-get install nginx ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
     
-WORKDIR /workspace
+COPY ./ /workspace/F5-TTS
+    
+WORKDIR /workspace/F5-TTS
 
-RUN git clone https://github.com/SWivid/F5-TTS.git \
-    && cd F5-TTS \
-    && git submodule update --init --recursive \
-    && pip install -e . --no-cache-dir
+RUN git submodule update --init --recursive \
+    && pip install -e . --no-cache-dir \
+    && pip install flask gunicorn
 
 ENV SHELL=/bin/bash
 
 VOLUME /root/.cache/huggingface/hub/
 
-EXPOSE 7860
+ENV PATH="/workspace/F5-TTS/server:${PATH}"
 
 WORKDIR /workspace/F5-TTS
+
+# ENTRYPOINT ["f5-tts_infer-cli", "--model", "F5TTS_v1_Base", \
+#      "--ref_audio", "/opt/ml/input/data/input/ref.wav", \
+#      "--ref_text", "Some call me nature, others call me mother nature.",  \
+#      "--gen_file", "/opt/ml/input/data/input/gen.txt", \
+#      "--output_dir", "/opt/ml/output"]

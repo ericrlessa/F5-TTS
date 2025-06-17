@@ -29,6 +29,8 @@ ENV PATH="/workspace/F5-TTS/server:${PATH}"
 
 WORKDIR /workspace/F5-TTS/server
 
+EXPOSE 8080
+
 # ENTRYPOINT ["f5-tts_infer-cli", "--model", "F5TTS_v1_Base", \
 #      "--ref_audio", "/opt/ml/input/data/input/ref.wav", \
 #      "--ref_text", "Some call me nature, others call me mother nature.",  \

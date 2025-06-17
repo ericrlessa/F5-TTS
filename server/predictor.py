@@ -43,11 +43,7 @@ def transformation():
     it to a pandas data frame for internal use and then convert the predictions back to CSV (which really
     just means one prediction per line, since there's a single column.
     """
-    data = None
-
-    # Convert from CSV to pandas
-    if flask.request.content_type == "multipart/form-data":
-
+    if flask.request.content_type and flask.request.content_type.startswith("multipart/form-data"):
         if 'audio' not in flask.request.files:
             return flask.jsonify({'error': 'No audio file provided'}), 400
         audio_file = flask.request.files['audio']
@@ -67,8 +63,6 @@ def transformation():
 
     input_path = os.path.join(UPLOAD_FOLDER, audio_file.filename)
     audio_file.save(input_path)
-
-    print("Invoked with {} records".format(data.shape[0]))
 
     output_filename = f"{uuid.uuid4().hex}.wav"
     output_path = os.path.join(OUTPUT_FOLDER, output_filename)

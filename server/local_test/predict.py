@@ -9,5 +9,12 @@ data = {
 }
 
 response = requests.post("http://localhost:8080/invocations", files=files, data=data)
+
 print(response.status_code)
-print(response)
+
+if response.status_code == 200:
+    with open("output.wav", "wb") as f:
+        f.write(response.content)
+    print("✅ Saved response to output.wav")
+else:
+    print("❌ Error:", response.text)

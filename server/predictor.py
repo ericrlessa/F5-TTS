@@ -75,7 +75,7 @@ def transformation():
 
     # Command and arguments as a list
     cmd = ["f5-tts_infer-cli", "--model", "F5TTS_v1_Base",
-     "--ref_audio", audio_file,
+     "--ref_audio", input_path,
      "--ref_text", input_ref_text,
      "--gen_text", input_text,
      "--output_dir", OUTPUT_FOLDER,

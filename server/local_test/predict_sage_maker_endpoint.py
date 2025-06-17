@@ -1,6 +1,7 @@
 import boto3
 import uuid
 import mimetypes
+import time
 from botocore.config import Config
 
 
@@ -24,7 +25,7 @@ body = (
 
     delimiter + newline +
     'Content-Disposition: form-data; name="text"' + newline + newline +
-    "Natural language processing (NLP) is a subfield of computer science and especially artificial intelligence. It is primarily concerned with providing computers with the ability to process data encoded in natural language and is thus closely related to information retrieval, knowledge representation and computational linguistics, a subfield of linguistics. Typically data is collected in text corpora, using either rule-based, statistical or neural-based approaches in machine learning and deep learning. Major tasks in natural language processing are speech recognition, text classification, natural-language understanding, and natural-language generation. Natural language processing has its roots in the 1950s.[1] Already in 1950, Alan Turing published an article titled 'Computing Machinery and Intelligence' which proposed what is now called the Turing test as a criterion of intelligence, though at the time that was not articulated as a problem separate from artificial intelligence." + newline +
+    "Natural language processing (NLP) is a subfield of computer science and especially artificial intelligence. It is primarily concerned with providing computers with the ability to process data encoded in natural language and is thus closely related to information retrieval, knowledge representation and computational linguistics, a subfield of linguistics. Typically data is collected in text corpora, using either rule-based, statistical or neural-based approaches in machine learning and deep learning. Major tasks in natural language processing are speech recognition, text classification, natural-language understanding, and natural-language generation." + newline +
 
     delimiter + newline +
     'Content-Disposition: form-data; name="ref_text"' + newline + newline +
@@ -41,11 +42,18 @@ body_bytes = body.encode("latin1")  # Required since audio data is binary
 # Call SageMaker endpoint
 client = boto3.client("sagemaker-runtime", config=timeout_config, region_name="us-east-1")
 
+start = time.time()
+
 response = client.invoke_endpoint(
     EndpointName="f5tts",
     ContentType=f"multipart/form-data; boundary={boundary}",
     Body=body_bytes
 )
+
+end = time.time()
+
+print(f"⏱️ Time taken: {end - start:.4f} seconds")
+
 
 # Save the response (if it's a file, e.g., WAV)
 with open("output.wav", "wb") as f:

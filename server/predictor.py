@@ -11,7 +11,7 @@ import signal
 import sys
 import traceback
 
-from flask import flask, jsonify, send_file
+import flask
 import subprocess
 import uuid
 
@@ -49,15 +49,15 @@ def transformation():
     if flask.request.content_type == "multipart/form-data":
 
         if 'audio' not in flask.request.files:
-            return jsonify({'error': 'No audio file provided'}), 400
+            return flask.jsonify({'error': 'No audio file provided'}), 400
         audio_file = flask.request.files['audio']
 
         if 'text' not in flask.request.form:
-            return jsonify({'error': 'No text provided'}), 400
+            return flask.jsonify({'error': 'No text provided'}), 400
         input_text = flask.request.form['text']
 
         if 'ref_text' not in flask.request.form:
-            return jsonify({'error': 'No text provided'}), 400
+            return flask.jsonify({'error': 'No text provided'}), 400
         input_ref_text = flask.request.form['ref_text']
 
     else:
@@ -87,5 +87,5 @@ def transformation():
     except subprocess.CalledProcessError as e:
         print("Error:", e.stderr)
 
-    return send_file(output_path, mimetype='audio/wav', as_attachment=True, download_name='output.wav')
+    return flask.send_file(output_path, mimetype='audio/wav', as_attachment=True, download_name='output.wav')
 

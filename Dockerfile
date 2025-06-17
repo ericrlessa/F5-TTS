@@ -4,8 +4,6 @@ USER root
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-LABEL github_repo="https://github.com/SWivid/F5-TTS"
-
 RUN set -x \
     && apt-get update \
     && apt-get -y install wget curl man git less openssl libssl-dev unzip unar build-essential aria2 tmux vim \
@@ -29,7 +27,7 @@ VOLUME /root/.cache/huggingface/hub/
 
 ENV PATH="/workspace/F5-TTS/server:${PATH}"
 
-WORKDIR /workspace/F5-TTS
+WORKDIR /workspace/F5-TTS/server
 
 # ENTRYPOINT ["f5-tts_infer-cli", "--model", "F5TTS_v1_Base", \
 #      "--ref_audio", "/opt/ml/input/data/input/ref.wav", \

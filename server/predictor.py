@@ -3,13 +3,9 @@
 
 from __future__ import print_function
 
-import io
-import json
 import os
-import pickle
-import signal
+import time
 import sys
-import traceback
 
 import flask
 import subprocess
@@ -17,9 +13,7 @@ import uuid
 
 import zipfile
 import tempfile
-
-prefix = "/opt/ml/"
-model_path = os.path.join(prefix, "model")
+import tempfile
 
 # The flask app for serving predictions
 app = flask.Flask(__name__)
@@ -33,88 +27,77 @@ def ping():
  #   status = 200 if health else 404
     return flask.Response(response="\n", status=200, mimetype="application/json")
 
-
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = '/opt/ml/output'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
 @app.route("/invocations", methods=["POST"])
-def real_time_inference():
-    if flask.request.content_type and flask.request.content_type.startswith("multipart/form-data"):
-        if 'audio' not in flask.request.files:
-            return flask.jsonify({'error': 'No audio file provided'}), 400
-        audio_file = flask.request.files['audio']
-
-        if 'text' not in flask.request.form:
-            return flask.jsonify({'error': 'No text provided'}), 400
-        input_text = flask.request.form['text']
-
-        if 'ref_text' not in flask.request.form:
-            return flask.jsonify({'error': 'No text provided'}), 400
-        input_ref_text = flask.request.form['ref_text']
-
-    else:
-        return zip_inference()
-
-    input_path = os.path.join(UPLOAD_FOLDER, audio_file.filename)
-    audio_file.save(input_path)
-
-    output_filename = f"{uuid.uuid4().hex}.wav"
-    output_path = os.path.join(OUTPUT_FOLDER, output_filename)
-
-    # Command and arguments as a list
-    cmd = ["f5-tts_infer-cli", "--model", "F5TTS_v1_Base",
-     "--ref_audio", input_path,
-     "--ref_text", input_ref_text,
-     "--gen_text", input_text,
-     "--output_dir", OUTPUT_FOLDER,
-     "--output_file", output_filename]
-
-    try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print("Command output:", result.stdout)
-    except subprocess.CalledProcessError as e:
-        print("Error:", e.stderr)
-
-    return flask.send_file(output_path, mimetype='audio/wav', as_attachment=True, download_name='output.wav')
-
-#@app.route("/invocations", methods=["POST"])
-def zip_inference():
-    if not flask.request.data:
-        return flask.jsonify({"error": "Request body is empty"}), 400
-
+def inference():
     with tempfile.TemporaryDirectory() as temp_dir:
-        zip_path = os.path.join(temp_dir, "input.zip")
-        with open(zip_path, "wb") as f:
-            f.write(flask.request.data)
-
-        ref_wav, ref_txt, gen_txt = unzip_and_get_files(zip_path, extract_to=temp_dir)
-
-        with open(ref_txt, "r", encoding="utf-8") as f:
-            ref_text_data = f.read()
-
+        
         output_filename = f"{uuid.uuid4().hex}.wav"
-        output_path = os.path.join(OUTPUT_FOLDER, output_filename)
+        output_path = os.path.join(temp_dir, output_filename)
 
-        cmd = [
-            "f5-tts_infer-cli", "--model", "F5TTS_v1_Base",
-            "--ref_audio", ref_wav,
-            "--ref_text", ref_text_data,
-            "--gen_file", gen_txt,
-            "--output_dir", OUTPUT_FOLDER,
-            "--output_file", output_filename
-        ]
+        if flask.request.content_type and flask.request.content_type.startswith("multipart/form-data"):
+            if 'audio' not in flask.request.files:
+                return flask.jsonify({'error': 'No audio file provided'}), 400
+            if 'text' not in flask.request.form:
+                return flask.jsonify({'error': 'No text provided'}), 400
+            if 'ref_text' not in flask.request.form:
+                return flask.jsonify({'error': 'No ref_text provided'}), 400
+
+            cmd = multipart_inference(temp_dir, output_filename)        
+        else:
+            if not flask.request.data:
+               return flask.jsonify({"error": "Request body is empty"}), 400
+           
+            cmd = zip_inference(temp_dir, output_filename)
 
         try:
+            start_time = time.time()
             result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-            print("Command output:", result.stdout)
+            elapsed = time.time() - start_time
+            print(f"⏱ Inference took {elapsed:.2f} seconds", file=sys.stdout, flush=True)
+            print("Subprocess output:", result.stdout, flush=True)
         except subprocess.CalledProcessError as e:
-            print("❌ Subprocess error:", e.stderr)
-            return flask.jsonify({"error": "Inference failed", "details": e.stderr}), 500
+            print("Error:", e.stderr)
+            return flask.jsonify({"error": "Inference failed"}), 500
 
-    return flask.send_file(output_path, mimetype='audio/wav', as_attachment=True, download_name='output.wav')
+        return flask.send_file(output_path, mimetype='audio/wav', as_attachment=True, download_name='output.wav')
 
+
+def multipart_inference(dir, output_filename):
+    audio_file = flask.request.files['audio']
+    input_text = flask.request.form['text']
+    input_ref_text = flask.request.form['ref_text']
+
+    input_path = os.path.join(dir, audio_file.filename)
+    audio_file.save(input_path)
+
+    return [
+        "f5-tts_infer-cli", "--model", "F5TTS_v1_Base",
+        "--ref_audio", input_path,
+        "--ref_text", input_ref_text,
+        "--gen_text", input_text,
+        "--output_dir", dir,
+        "--output_file", output_filename,
+    ]
+
+def zip_inference(dir, output_filename):
+
+    zip_path = os.path.join(dir, "input.zip")
+    with open(zip_path, "wb") as f:
+        f.write(flask.request.data)
+
+    ref_wav, ref_txt, gen_txt = unzip_and_get_files(zip_path, extract_to=dir)
+
+    with open(ref_txt, "r", encoding="utf-8") as f:
+        ref_text_data = f.read()
+
+    return [
+        "f5-tts_infer-cli", "--model", "F5TTS_v1_Base",
+        "--ref_audio", ref_wav,
+        "--ref_text", ref_text_data,
+        "--gen_file", gen_txt,
+        "--output_dir", dir,
+        "--output_file", output_filename
+    ]
 
 def unzip_and_get_files(zip_path, extract_to="."):
     if not zipfile.is_zipfile(zip_path):

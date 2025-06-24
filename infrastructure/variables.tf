@@ -11,7 +11,9 @@ variable "account" {
 
 locals {
   f5tts_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/f5tts:latest"
-  listener_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/sqs-listener:latest"
+  sqs_listener_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/sqs-listener:latest"
+  generate_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/gen-audio-handler:latest"
+  clone_service_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/lambda-voice-clone:latest"
 }
 
 variable "bucket_name" {

@@ -21,7 +21,7 @@ variable "bucket_name" {
 
 # 🔹 Create SQS Queue
 resource "aws_sqs_queue" "s3_event_queue" {
-  name = "voice-clone-gen-events"
+  name = var.sqs_queue_name
 }
 
 # 🔹 Allow S3 to send messages to SQS

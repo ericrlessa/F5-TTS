@@ -163,7 +163,7 @@ resource "aws_ecs_task_definition" "task" {
     },
     {
       name = "sqs-listener"
-      image = var.listener_image
+      image = var.sqs_listener_image
       essential = true
       dependsOn = [{ containerName = "f5tts", condition = "HEALTHY" }]
     }

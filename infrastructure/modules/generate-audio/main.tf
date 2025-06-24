@@ -43,14 +43,10 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
-resource "aws_ecr_repository" "lambda_repo" {
-  name = "gen-audio-handler"
-}
-
 resource "aws_lambda_function" "gen_audio_handler" {
   function_name = "gen-audio"
   package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.lambda_repo.repository_url}:latest"
+  image_uri     = var.generate_audio_handler_image
   role          = aws_iam_role.lambda_role.arn
   timeout       = 30
 

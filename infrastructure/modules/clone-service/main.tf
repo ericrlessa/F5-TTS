@@ -21,14 +21,10 @@ variable "bucket_name" {
   type        = string
 }
 
-resource "aws_ecr_repository" "lambda_repo" {
-  name = "lambda-voice-clone"
-}
-
 resource "aws_lambda_function" "voice_clone_handler" {
   function_name = "voice-clone-handler"
   package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.lambda_repo.repository_url}:latest"
+  image_uri     = var.clone_service_image
   role          = aws_iam_role.lambda_exec_role.arn
   timeout       = 30
 

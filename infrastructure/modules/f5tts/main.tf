@@ -143,7 +143,7 @@ resource "aws_ecs_task_definition" "task" {
       name = "f5tts"
       image = var.f5tts_image
       essential = true
-      portMappings = [{ containerPort = 80, hostPort = 80 }]
+      portMappings = [{ containerPort = 8080, hostPort = 8080 }]
     },
     {
       name = "sqs-listener"
@@ -162,7 +162,3 @@ resource "aws_ecs_service" "service" {
   desired_count = 1
   launch_type = "EC2"
 }
-
-# ✅ Outputs
-output "ecs_cluster_name" { value = aws_ecs_cluster.cluster.name }
-output "asg_name" { value = aws_autoscaling_group.ecs.name }

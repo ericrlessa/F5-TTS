@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = var.region
-}
-
 resource "aws_iam_role" "lambda_role" {
   name = "lambda-gen-text-role"
   assume_role_policy = jsonencode({
@@ -48,41 +44,4 @@ resource "aws_lambda_function" "gen_audio_handler" {
     }
   }
 
-}
-
-resource "aws_apigatewayv2_api" "api" {
-  name          = "gen-audio-api"
-  protocol_type = "HTTP"
-}
-
-resource "aws_apigatewayv2_integration" "lambda_integration" {
-  api_id                  = aws_apigatewayv2_api.api.id
-  integration_type        = "AWS_PROXY"
-  integration_uri         = aws_lambda_function.gen_audio_handler.invoke_arn
-  integration_method      = "POST"
-  payload_format_version  = "2.0"
-}
-
-resource "aws_apigatewayv2_route" "post_route" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "POST /upload"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
-}
-
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.api.id
-  name        = "$default"
-  auto_deploy = true
-}
-
-resource "aws_lambda_permission" "allow_apigw" {
-  statement_id  = "AllowInvokeFromApiGW"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.gen_audio_handler.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
-}
-
-output "upload_url" {
-  value = "${aws_apigatewayv2_api.api.api_endpoint}/upload"
 }

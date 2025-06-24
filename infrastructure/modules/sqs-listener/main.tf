@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = var.region
-}
-
 # 🔹 Create SQS Queue
 resource "aws_sqs_queue" "s3_event_queue" {
   name = var.sqs_queue_name

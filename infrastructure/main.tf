@@ -1,3 +1,7 @@
+provider "aws" {
+  region = var.region
+}
+
 module "f5tts" {
   source = "./modules/f5tts"
   region = var.region

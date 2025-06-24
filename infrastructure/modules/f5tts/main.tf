@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = var.region
-}
-
 # ✅ Get existing SQS queue
 data "aws_sqs_queue" "queue" {
   name = var.sqs_queue_name

@@ -7,11 +7,6 @@ terraform {
   }
 }
 
-variable "region" {
-  description = "AWS region to deploy resources"
-  type        = string
-}
-
 provider "aws" {
   region = var.region
 }
@@ -21,12 +16,17 @@ variable "bucket_name" {
   type        = string
 }
 
+variable "clone_service_image" {
+  description = "ECR image URI for the clone service"
+  type        = string
+}
+
 resource "aws_lambda_function" "voice_clone_handler" {
-  function_name = "voice-clone-handler"
+  function_name = var.clone_service_function_name
   package_type  = "Image"
   image_uri     = var.clone_service_image
   role          = aws_iam_role.lambda_exec_role.arn
-  timeout       = 30
+  timeout       = 60
 
   environment {
     variables = {

@@ -11,14 +11,6 @@ provider "aws" {
   region = var.region
 }
 
-variable "region" {
-  type    = string
-}
-
-variable "bucket_name" {
-  type    = string
-}
-
 # 🔹 Create SQS Queue
 resource "aws_sqs_queue" "s3_event_queue" {
   name = var.sqs_queue_name
@@ -54,7 +46,6 @@ resource "aws_s3_bucket_notification" "s3_to_sqs" {
   queue {
     queue_arn     = aws_sqs_queue.s3_event_queue.arn
     events        = ["s3:ObjectCreated:*"]
-    filter_prefix = "voice-clone-podcast/"
     filter_suffix = ".txt"
   }
 

@@ -1,0 +1,17 @@
+variable "generate_audio_function_name" {
+  type = string
+  default = "gen-audio"
+}
+
+variable "generate_audio_handler_image" {
+  description = "ECR image URI for the generate-audio Lambda"
+  type        = string
+}
+
+variable "region" {
+  type    = string
+}
+
+variable "bucket_name" {
+  type    = string
+}

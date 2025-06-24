@@ -1,0 +1,27 @@
+variable "region" { 
+  type=string 
+}
+
+variable "sqs_queue_name" { 
+  type=string 
+}
+
+variable "ecs_instance_type" { 
+  type=string 
+}
+
+variable "ecs_cluster_name" { 
+  type=string 
+}
+
+variable "ecs_ami_ssm_param" {
+  type = string
+}
+
+variable "f5tts_image" {
+  type = string
+}
+
+variable "sqs_listener_image" {
+  type = string
+}

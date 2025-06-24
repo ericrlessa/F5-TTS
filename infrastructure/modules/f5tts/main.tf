@@ -8,26 +8,6 @@ provider "aws" {
   region = var.region
 }
 
-variable "region" { 
-  type=string 
-}
-
-variable "sqs_queue_name" { 
-  type=string 
-}
-
-variable "ecs_instance_type" { 
-  type=string 
-}
-
-variable "ecs_cluster_name" { 
-  type=string 
-}
-
-variable "ecs_ami_ssm_param" {
-  type = string
-}
-
 # ✅ Get existing SQS queue
 data "aws_sqs_queue" "queue" {
   name = var.sqs_queue_name

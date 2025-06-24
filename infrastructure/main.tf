@@ -29,3 +29,11 @@ module "sqs_listener" {
   region = var.region
   sqs_queue_name = var.sqs_queue_name
 }
+
+module "api_gateway" {
+  source = "./modules/api-gateway"
+  clone_service_integration_uri = module.clone_service.lambda_invoke_arn
+  generate_audio_integration_uri = module.generate_audio.lambda_invoke_arn
+  generate_audio_function_name = var.generate_audio_function_name
+  clone_service_function_name = var.clone_service_function_name
+}

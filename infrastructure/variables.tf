@@ -29,7 +29,7 @@ variable "sqs_queue_name" {
 
 variable "ecs_instance_type" { 
   type=string 
-  default="t3.small" 
+  default="t3.xlarge" 
 }
 
 variable "ecs_cluster_name" { 
@@ -40,4 +40,14 @@ variable "ecs_cluster_name" {
 variable "ecs_ami_ssm_param" {
   type = string
   default = "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
+}
+
+variable "generate_audio_function_name" {
+  type = string
+  default = "gen-audio"
+}
+
+variable "clone_service_function_name" {
+  type = string
+  default = "voice-clone-handler"
 }

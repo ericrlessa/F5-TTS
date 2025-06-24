@@ -1,6 +1,5 @@
 variable "generate_audio_function_name" {
   type = string
-  default = "gen-audio"
 }
 
 variable "generate_audio_handler_image" {

@@ -1,6 +1,5 @@
 variable "clone_service_function_name" {
   type = string
-  default = "voice-clone-handler"
 }
 
 variable "region" {

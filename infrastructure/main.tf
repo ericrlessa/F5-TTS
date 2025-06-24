@@ -6,7 +6,7 @@ module "f5tts" {
   ecs_cluster_name = var.ecs_cluster_name
   ecs_ami_ssm_param = var.ecs_ami_ssm_param
   f5tts_image = local.f5tts_image
-  listener_image = local.sqs_listener_image
+  sqs_listener_image = local.sqs_listener_image
 }
 
 module "clone_service" {
@@ -14,6 +14,7 @@ module "clone_service" {
   bucket_name = var.bucket_name
   region = var.region
   clone_service_image = local.clone_service_image
+  clone_service_function_name = var.clone_service_function_name
 }
 
 module "generate_audio" {
@@ -21,6 +22,7 @@ module "generate_audio" {
   bucket_name = var.bucket_name
   region = var.region
   generate_audio_handler_image = local.generate_audio_handler_image
+  generate_audio_function_name = var.generate_audio_function_name
 }
 
 module "sqs_listener" {

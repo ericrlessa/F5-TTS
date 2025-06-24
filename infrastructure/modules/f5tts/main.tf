@@ -7,9 +7,12 @@ terraform {
   }
 }
 
-# ✅ Get existing SQS queue
-data "aws_sqs_queue" "queue" {
+# ================= Create SQS queue (instead of data source)
+resource "aws_sqs_queue" "queue" {
   name = var.sqs_queue_name
+
+  # Optional additional config, like visibility timeout, retention, etc.
+  # visibility_timeout_seconds = 30
 }
 
 # ================= ECS Cluster
@@ -34,7 +37,7 @@ data "aws_iam_policy_document" "ecs_assume" {
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_instance" {
-  role = aws_iam_role.ecs_instance_role.name
+  role       = aws_iam_role.ecs_instance_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
 }
 
@@ -42,11 +45,16 @@ resource "aws_iam_role_policy_attachment" "ecs_instance" {
 data "aws_ssm_parameter" "ecs_ami" {
   name = var.ecs_ami_ssm_param
 }
+
 resource "aws_launch_template" "ecs" {
-  name_prefix = "ecs-"
-  image_id = data.aws_ssm_parameter.ecs_ami.value
+  name_prefix   = "ecs-"
+  image_id      = data.aws_ssm_parameter.ecs_ami.value
   instance_type = var.ecs_instance_type
-  iam_instance_profile { name = aws_iam_instance_profile.ecs_profile.name }
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ecs_profile.name
+  }
+
   user_data = base64encode(<<EOF
 #!/bin/bash
 echo ECS_CLUSTER=${aws_ecs_cluster.cluster.name} >> /etc/ecs/ecs.config
@@ -59,95 +67,101 @@ resource "aws_iam_instance_profile" "ecs_profile" {
   role = aws_iam_role.ecs_instance_role.name
 }
 
+# ================= Fetch default VPC and Subnets
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
 # ================= Auto Scaling Group that can scale to 0
 resource "aws_autoscaling_group" "ecs" {
-  name = "ecs-asg"
-  desired_capacity = 0
-  min_size = 0
-  max_size = 1
+  name                = "ecs-asg"
+  desired_capacity    = 0
+  min_size            = 0
+  max_size            = 1
+  vpc_zone_identifier = data.aws_subnets.default.ids
+
   launch_template {
-    id = aws_launch_template.ecs.id
+    id      = aws_launch_template.ecs.id
     version = "$Latest"
   }
+
   tag {
-    key = "Name"
-    value = "ecs-instance"
+    key                 = "Name"
+    value               = "ecs-instance"
     propagate_at_launch = true
   }
-  vpc_zone_identifier = data.aws_subnet_ids.default.ids
 }
-
-# Fetch default subnet IDs
-data "aws_vpc" "default" { default = true }
-data "aws_subnet_ids" "default" { vpc_id = data.aws_vpc.default.id }
 
 # ================= CloudWatch Metrics & Policies
-data "aws_cloudwatch_metric_alarm" "scale_up_alarm" {
-  alarm_name = "sqs-scale-up"
-}
-
 resource "aws_cloudwatch_metric_alarm" "scale_up" {
-  alarm_name = "sqs-scale-up"
+  alarm_name          = "sqs-scale-up"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods = 1
-  threshold = 0
-  metric_name = "ApproximateNumberOfMessagesVisible"
-  namespace = "AWS/SQS"
-  dimensions = { QueueName = data.aws_sqs_queue.queue.name }
-  statistic = "Sum"
-  period = 60
-  alarm_actions = [aws_autoscaling_policy.scale_up.arn]
+  evaluation_periods  = 1
+  threshold           = 0
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  dimensions          = { QueueName = aws_sqs_queue.queue.name }
+  statistic           = "Sum"
+  period              = 60
+  alarm_actions       = [aws_autoscaling_policy.scale_up.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "scale_down" {
-  alarm_name = "sqs-scale-down"
+  alarm_name          = "sqs-scale-down"
   comparison_operator = "LessThanOrEqualToThreshold"
-  evaluation_periods = 5
-  threshold = 0
-  metric_name = "ApproximateNumberOfMessagesVisible"
-  namespace = "AWS/SQS"
-  dimensions = { QueueName = data.aws_sqs_queue.queue.name }
-  statistic = "Sum"
-  period = 60
-  alarm_actions = [aws_autoscaling_policy.scale_down.arn]
+  evaluation_periods  = 5
+  threshold           = 0
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  dimensions          = { QueueName = aws_sqs_queue.queue.name }
+  statistic           = "Sum"
+  period              = 60
+  alarm_actions       = [aws_autoscaling_policy.scale_down.arn]
 }
 
 resource "aws_autoscaling_policy" "scale_up" {
-  name = "scale-up-policy"
+  name                  = "scale-up-policy"
   autoscaling_group_name = aws_autoscaling_group.ecs.name
-  adjustment_type = "ChangeInCapacity"
-  scaling_adjustment = 1
-  cooldown = 120
-  policy_type = "SimpleScaling"
+  adjustment_type       = "ChangeInCapacity"
+  scaling_adjustment    = 1
+  cooldown              = 120
+  policy_type           = "SimpleScaling"
 }
 
 resource "aws_autoscaling_policy" "scale_down" {
-  name = "scale-down-policy"
+  name                  = "scale-down-policy"
   autoscaling_group_name = aws_autoscaling_group.ecs.name
-  adjustment_type = "ChangeInCapacity"
-  scaling_adjustment = -1
-  cooldown = 300
-  policy_type = "SimpleScaling"
+  adjustment_type       = "ChangeInCapacity"
+  scaling_adjustment    = -1
+  cooldown              = 300
+  policy_type           = "SimpleScaling"
 }
 
 # ================= Task Definition
 resource "aws_ecs_task_definition" "task" {
-  family = "voice-clone-task"
-  network_mode = "bridge"
+  family                   = "voice-clone-task"
+  network_mode             = "bridge"
   requires_compatibilities = ["EC2"]
-  cpu = "512"
-  memory = "1024"
+  cpu                      = "512"
+  memory                   = "1024"
 
   container_definitions = jsonencode([
     {
-      name = "f5tts"
-      image = var.f5tts_image
-      essential = true
+      name         = "f5tts"
+      image        = var.f5tts_image
+      essential    = true
       portMappings = [{ containerPort = 8080, hostPort = 8080 }]
     },
     {
-      name = "sqs-listener"
-      image = var.sqs_listener_image
+      name      = "sqs-listener"
+      image     = var.sqs_listener_image
       essential = true
       dependsOn = [{ containerName = "f5tts", condition = "HEALTHY" }]
     }
@@ -156,9 +170,9 @@ resource "aws_ecs_task_definition" "task" {
 
 # ================= ECS Service
 resource "aws_ecs_service" "service" {
-  name = "voice-clone-service"
-  cluster = aws_ecs_cluster.cluster.id
+  name            = "voice-clone-service"
+  cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.task.arn
-  desired_count = 1
-  launch_type = "EC2"
+  desired_count   = 1
+  launch_type     = "EC2"
 }

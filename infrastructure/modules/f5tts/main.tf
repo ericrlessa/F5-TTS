@@ -70,6 +70,16 @@ resource "aws_iam_instance_profile" "ecs_profile" {
   role = aws_iam_role.ecs_instance_role.name
 }
 
+resource "aws_iam_role_policy_attachment" "ecs_cloudwatch_attach" {
+  role       = aws_iam_role.ecs_instance_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+}
+
+resource "aws_cloudwatch_log_group" "ecs_log_group" {
+  name              = "/ecs/voice-clone"
+  retention_in_days = 1
+}
+
 # ================= Launch Template with ECS Optimized AMI
 data "aws_ssm_parameter" "ecs_ami" {
   name = var.ecs_ami_ssm_param
@@ -188,6 +198,14 @@ resource "aws_ecs_task_definition" "task" {
       essential    = true
       portMappings = [{ containerPort = 8080, hostPort = 8080 }]
       command      = ["serve"]
+      logConfiguration = {
+          logDriver = "awslogs"
+          options = {
+            awslogs-group         = "/ecs/voice-clone"
+            awslogs-region        = var.region
+            awslogs-stream-prefix = "ecs"
+          }
+      }
 
       healthCheck = {
         command     = ["CMD-SHELL", "curl -f http://localhost:8080/ping || exit 1"]
@@ -206,10 +224,24 @@ resource "aws_ecs_task_definition" "task" {
         {
           name  = "SQS_QUEUE_URL"
           value = var.sqs_queue_url
+        },
+        {
+          name  = "ENDPOINT_URL"
+          value = "http://localhost:8080/invocations"
         }
       ]
+      logConfiguration = {
+          logDriver = "awslogs"
+          options = {
+            awslogs-group         = "/ecs/voice-clone"
+            awslogs-region        = var.region
+            awslogs-stream-prefix = "ecs"
+          }
+      }
     }
   ])
+
+  
 }
 
 # ================= ECS Service

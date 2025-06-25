@@ -2,7 +2,6 @@ import json
 import boto3
 import base64
 import os
-import uuid
 
 s3_client = boto3.client('s3')
 BUCKET_NAME = os.environ.get('BUCKET_NAME', 'your-default-bucket-name')

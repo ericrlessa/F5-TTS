@@ -4,6 +4,8 @@ import json
 import time
 import os
 from io import BytesIO
+import traceback
+
 
 import logging
 
@@ -56,10 +58,23 @@ def process_message(message):
         response = requests.post(ENDPOINT_URL, data=data, files=files, timeout=REQUEST_TIMEOUT)
         logger.info(f"✅ Response status: {response.status_code}")
 
+        # Raise if failed
+        response.raise_for_status()
+
+        s3.put_object(
+            Bucket=bucket,
+            Key=f"{gen_key}.wav",
+            Body=response.content,
+            ContentType="audio/wav"
+        )
+
+        logger.info(f"✅ Uploaded to s3://{bucket}/{gen_key}.wav")
+
         return True
 
     except Exception as e:
         logger.error(f"❌ Error processing message: {e}")
+        logger.debug(traceback.format_exc())
         return False
 
 def poll_queue():

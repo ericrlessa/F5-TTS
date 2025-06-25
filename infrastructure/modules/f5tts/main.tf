@@ -49,7 +49,7 @@ data "aws_iam_policy_document" "ecs_assume" {
 }
 
 resource "aws_iam_role" "ecs_instance_role" {
-  name               = "ecsInstanceRole"
+  name               = "ecsInstanceRole-f5tts"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
 }
 

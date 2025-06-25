@@ -24,13 +24,13 @@ def lambda_handler(event, context):
         data = json.loads(body)
 
         model = data.get("model")
-        gen_text_b64 = data.get("gen_text")
+        gen_text = data.get("gen_text")
 
-        if not model or not gen_text_b64:
+        if not model or not gen_text:
             return {"statusCode": 400, "body": "Missing 'model' or 'gen_text'"}
 
         # Decode and store text in S3
-        text_bytes = base64.b64decode(gen_text_b64)
+        text_bytes = gen_text.encode('utf-8')
         text_filename = f"{uuid.uuid4()}.txt"
         s3_key = f"{model}/gen/{text_filename}"
 

@@ -10,6 +10,7 @@ results/
 .terraform/
 
 .terraform.*
+terraform.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

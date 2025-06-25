@@ -4,7 +4,15 @@ import os
 import base64
 import uuid
 
-s3 = boto3.client("s3")
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+REGION_NAME = os.getenv("AWS_REGION", "us-east-1")
+QUEUE_URL = os.environ["SQS_QUEUE_URL"]
+
+sqs = boto3.client("sqs", region_name=REGION_NAME)
+s3 = boto3.client("s3", region_name=REGION_NAME)
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 
 def lambda_handler(event, context):
@@ -24,7 +32,7 @@ def lambda_handler(event, context):
         # Decode and store text in S3
         text_bytes = base64.b64decode(gen_text_b64)
         text_filename = f"{uuid.uuid4()}.txt"
-        s3_key = f"{model}/{text_filename}"
+        s3_key = f"{model}/gen/{text_filename}"
 
         s3.put_object(
             Bucket=BUCKET_NAME,
@@ -32,6 +40,22 @@ def lambda_handler(event, context):
             Body=text_bytes,
             ContentType="text/plain"
         )
+
+        message_body = {
+            'bucket': BUCKET_NAME,
+            's3_key_gen': s3_key,
+            'model': model,
+            's3_key_ref_text': f"{model}/ref_text.txt",
+            's3_key_ref_audio': f"{model}/ref.wav",
+        }
+
+        sqs.send_message(
+            QueueUrl=QUEUE_URL,
+            MessageBody=json.dumps(message_body)
+        )
+
+        logger.info(f"Uploading to S3 at key: {s3_key}")
+        logger.info(f"Sending SQS message: {message_body}")
 
         return {
             "statusCode": 200,

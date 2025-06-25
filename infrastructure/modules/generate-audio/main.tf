@@ -7,6 +7,7 @@ terraform {
   }
 }
 
+# ================= IAM Role for Lambda
 resource "aws_iam_role" "lambda_role" {
   name = "lambda-gen-text-role"
   assume_role_policy = jsonencode({
@@ -21,16 +22,43 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
+# Basic Lambda logging
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Full access to S3 (you may want to limit this to just Get/Put if needed)
 resource "aws_iam_role_policy_attachment" "lambda_s3" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
+# Custom inline policy for Lambda to send messages to SQS
+resource "aws_iam_policy" "lambda_sqs_policy" {
+  name        = "lambda-sqs-send-policy"
+  description = "Allow Lambda to send messages to SQS queue"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "sqs:SendMessage"
+        ],
+        Resource = var.sqs_queue_arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_sqs_attach" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_sqs_policy.arn
+}
+
+# ================= Lambda Function
 resource "aws_lambda_function" "gen_audio_handler" {
   function_name = var.generate_audio_function_name
   package_type  = "Image"
@@ -40,8 +68,8 @@ resource "aws_lambda_function" "gen_audio_handler" {
 
   environment {
     variables = {
-      BUCKET_NAME = var.bucket_name
+      BUCKET_NAME    = var.bucket_name
+      SQS_QUEUE_URL  = var.sqs_queue_url
     }
   }
-
 }

@@ -6,6 +6,10 @@ variable "sqs_queue_name" {
   type=string 
 }
 
+variable "sqs_queue_arn" {
+  type        = string
+}
+
 variable "ecs_instance_type" { 
   type=string 
 }
@@ -24,4 +28,8 @@ variable "f5tts_image" {
 
 variable "sqs_listener_image" {
   type = string
+}
+
+variable "bucket_name" {
+  type    = string
 }

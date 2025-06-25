@@ -7,25 +7,37 @@ terraform {
   }
 }
 
-# ================= Create SQS queue (instead of data source)
-resource "aws_sqs_queue" "queue" {
-  name = var.sqs_queue_name
+# ================= IAM policy for ECS instances to access SQS and S3
+resource "aws_iam_policy" "ecs_sqs_s3_policy" {
+  name        = "ecs_sqs_s3_policy"
+  description = "Allow ECS instances to receive messages from SQS and read S3 objects"
 
-  # Optional additional config, like visibility timeout, retention, etc.
-  # visibility_timeout_seconds = 30
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:ChangeMessageVisibility"
+        ],
+        Resource = var.sqs_queue_arn
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "s3:GetObject",
+          "s3:GetObjectVersion"
+        ],
+        Resource = "arn:aws:s3:::${var.bucket_name}/*"
+      }
+    ]
+  })
 }
 
-# ================= ECS Cluster
-resource "aws_ecs_cluster" "cluster" {
-  name = var.ecs_cluster_name
-}
-
-# ================= IAM role for EC2
-resource "aws_iam_role" "ecs_instance_role" {
-  name = "ecsInstanceRole"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
-}
-
+# ================= IAM role for EC2 instances (ECS hosts)
 data "aws_iam_policy_document" "ecs_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -36,9 +48,26 @@ data "aws_iam_policy_document" "ecs_assume" {
   }
 }
 
+resource "aws_iam_role" "ecs_instance_role" {
+  name               = "ecsInstanceRole"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
+}
+
+# Attach the standard ECS instance policy
 resource "aws_iam_role_policy_attachment" "ecs_instance" {
   role       = aws_iam_role.ecs_instance_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+}
+
+# Attach the custom SQS + S3 access policy
+resource "aws_iam_role_policy_attachment" "ecs_sqs_s3_attach" {
+  role       = aws_iam_role.ecs_instance_role.name
+  policy_arn = aws_iam_policy.ecs_sqs_s3_policy.arn
+}
+
+resource "aws_iam_instance_profile" "ecs_profile" {
+  name = "ecsInstanceProfile"
+  role = aws_iam_role.ecs_instance_role.name
 }
 
 # ================= Launch Template with ECS Optimized AMI
@@ -62,9 +91,9 @@ EOF
   )
 }
 
-resource "aws_iam_instance_profile" "ecs_profile" {
-  name = "ecsInstanceProfile"
-  role = aws_iam_role.ecs_instance_role.name
+# ================= ECS Cluster
+resource "aws_ecs_cluster" "cluster" {
+  name = var.ecs_cluster_name
 }
 
 # ================= Fetch default VPC and Subnets
@@ -99,7 +128,7 @@ resource "aws_autoscaling_group" "ecs" {
   }
 }
 
-# ================= CloudWatch Metrics & Policies
+# ================= CloudWatch Metrics & Policies for autoscaling
 resource "aws_cloudwatch_metric_alarm" "scale_up" {
   alarm_name          = "sqs-scale-up"
   comparison_operator = "GreaterThanThreshold"
@@ -107,7 +136,7 @@ resource "aws_cloudwatch_metric_alarm" "scale_up" {
   threshold           = 0
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  dimensions          = { QueueName = aws_sqs_queue.queue.name }
+  dimensions          = { QueueName = sqs_queue_name }
   statistic           = "Sum"
   period              = 60
   alarm_actions       = [aws_autoscaling_policy.scale_up.arn]
@@ -120,7 +149,7 @@ resource "aws_cloudwatch_metric_alarm" "scale_down" {
   threshold           = 0
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  dimensions          = { QueueName = aws_sqs_queue.queue.name }
+  dimensions          = { QueueName = sqs_queue_name }
   statistic           = "Sum"
   period              = 60
   alarm_actions       = [aws_autoscaling_policy.scale_down.arn]

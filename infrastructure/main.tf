@@ -2,15 +2,23 @@ provider "aws" {
   region = var.region
 }
 
+module "gen_audio_queue" {
+  source = "./modules/gen-audio-queue"
+  region = var.region
+  sqs_queue_name = var.sqs_queue_name
+}
+
 module "f5tts" {
   source = "./modules/f5tts"
   region = var.region
   sqs_queue_name = var.sqs_queue_name
+  sqs_queue_arn = module.gen_audio_queue.sqs_queue_arn
   ecs_instance_type = var.ecs_instance_type
   ecs_cluster_name = var.ecs_cluster_name
   ecs_ami_ssm_param = var.ecs_ami_ssm_param
   f5tts_image = local.f5tts_image
   sqs_listener_image = local.sqs_listener_image
+  bucket_name = var.bucket_name
 }
 
 module "clone_service" {
@@ -27,13 +35,8 @@ module "generate_audio" {
   region = var.region
   generate_audio_handler_image = local.generate_audio_handler_image
   generate_audio_function_name = var.generate_audio_function_name
-}
-
-module "sqs_listener" {
-  source = "./modules/sqs-listener"
-  bucket_name = var.bucket_name
-  region = var.region
-  sqs_queue_name = var.sqs_queue_name
+  sqs_queue_arn = module.gen_audio_queue.sqs_queue_arn
+  sqs_queue_url = module.gen_audio_queue.sqs_queue_url
 }
 
 module "api_gateway" {

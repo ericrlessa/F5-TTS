@@ -4,7 +4,7 @@ import base64
 import os
 
 s3_client = boto3.client('s3')
-BUCKET_NAME = os.environ.get('BUCKET_NAME', 'your-default-bucket-name')
+BUCKET_NAME = os.environ.get('BUCKET_NAME')
 
 def lambda_handler(event, context):
     try:

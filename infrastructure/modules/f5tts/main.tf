@@ -136,7 +136,7 @@ resource "aws_cloudwatch_metric_alarm" "scale_up" {
   threshold           = 0
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  dimensions          = { QueueName = sqs_queue_name }
+  dimensions          = { QueueName = var.sqs_queue_name }
   statistic           = "Sum"
   period              = 60
   alarm_actions       = [aws_autoscaling_policy.scale_up.arn]
@@ -149,7 +149,7 @@ resource "aws_cloudwatch_metric_alarm" "scale_down" {
   threshold           = 0
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  dimensions          = { QueueName = sqs_queue_name }
+  dimensions          = { QueueName = var.sqs_queue_name }
   statistic           = "Sum"
   period              = 60
   alarm_actions       = [aws_autoscaling_policy.scale_down.arn]
@@ -187,12 +187,27 @@ resource "aws_ecs_task_definition" "task" {
       image        = var.f5tts_image
       essential    = true
       portMappings = [{ containerPort = 8080, hostPort = 8080 }]
+      command      = ["serve"]
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/ping || exit 1"]
+        interval    = 30           # Time between health checks (seconds)
+        timeout     = 5            # Time to wait for a response (seconds)
+        retries     = 3            # Number of retries before unhealthy
+        startPeriod = 10           # Grace period after container starts (seconds)
+      }
     },
     {
       name      = "sqs-listener"
       image     = var.sqs_listener_image
       essential = true
       dependsOn = [{ containerName = "f5tts", condition = "HEALTHY" }]
+      environment = [
+        {
+          name  = "SQS_QUEUE_URL"
+          value = var.sqs_queue_url
+        }
+      ]
     }
   ])
 }

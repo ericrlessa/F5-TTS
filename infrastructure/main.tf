@@ -13,6 +13,7 @@ module "f5tts" {
   region = var.region
   sqs_queue_name = var.sqs_queue_name
   sqs_queue_arn = module.gen_audio_queue.sqs_queue_arn
+  sqs_queue_url = module.gen_audio_queue.sqs_queue_url
   ecs_instance_type = var.ecs_instance_type
   ecs_cluster_name = var.ecs_cluster_name
   ecs_ami_ssm_param = var.ecs_ami_ssm_param

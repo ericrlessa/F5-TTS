@@ -29,7 +29,8 @@ resource "aws_iam_policy" "ecs_sqs_s3_policy" {
         Effect   = "Allow",
         Action   = [
           "s3:GetObject",
-          "s3:GetObjectVersion"
+          "s3:GetObjectVersion",
+          "s3:PutObject"
         ],
         Resource = "arn:aws:s3:::${var.bucket_name}/*"
       }
@@ -53,13 +54,11 @@ resource "aws_iam_role" "ecs_instance_role" {
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
 }
 
-# Attach the standard ECS instance policy
 resource "aws_iam_role_policy_attachment" "ecs_instance" {
   role       = aws_iam_role.ecs_instance_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
 }
 
-# Attach the custom SQS + S3 access policy
 resource "aws_iam_role_policy_attachment" "ecs_sqs_s3_attach" {
   role       = aws_iam_role.ecs_instance_role.name
   policy_arn = aws_iam_policy.ecs_sqs_s3_policy.arn
@@ -97,6 +96,7 @@ resource "aws_launch_template" "ecs" {
   user_data = base64encode(<<EOF
 #!/bin/bash
 echo ECS_CLUSTER=${aws_ecs_cluster.cluster.name} >> /etc/ecs/ecs.config
+echo ECS_ENABLE_AWSVPC_TRUNKING=true >> /etc/ecs/ecs.config
 EOF
   )
 }
@@ -106,25 +106,13 @@ resource "aws_ecs_cluster" "cluster" {
   name = var.ecs_cluster_name
 }
 
-# ================= Fetch default VPC and Subnets
-data "aws_vpc" "default" {
-  default = true
-}
-
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-}
-
 # ================= Auto Scaling Group that can scale to 0
 resource "aws_autoscaling_group" "ecs" {
   name                = "ecs-asg"
   desired_capacity    = 0
   min_size            = 0
   max_size            = 1
-  vpc_zone_identifier = data.aws_subnets.default.ids
+  vpc_zone_identifier = var.private_subnet_ids
 
   launch_template {
     id      = aws_launch_template.ecs.id
@@ -186,33 +174,38 @@ resource "aws_autoscaling_policy" "scale_down" {
 # ================= Task Definition
 resource "aws_ecs_task_definition" "task" {
   family                   = "voice-clone-task"
-  network_mode             = "bridge"
+  network_mode             = "awsvpc"
   requires_compatibilities = ["EC2"]
-  cpu                      = "512"
-  memory                   = "1024"
-
+  cpu                      = "4096"
+  memory                   = "14336"
+  
   container_definitions = jsonencode([
     {
       name         = "f5tts"
       image        = var.f5tts_image
       essential    = true
-      portMappings = [{ containerPort = 8080, hostPort = 8080 }]
+      portMappings = [{ containerPort = 8080, protocol = "tcp" }]
       command      = ["serve"]
+      resourceRequirements = [
+        {
+          type  = "GPU"
+          value = "1"
+        }
+      ]
       logConfiguration = {
-          logDriver = "awslogs"
-          options = {
-            awslogs-group         = "/ecs/voice-clone"
-            awslogs-region        = var.region
-            awslogs-stream-prefix = "ecs"
-          }
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/voice-clone"
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
       }
-
       healthCheck = {
         command     = ["CMD-SHELL", "curl -f http://localhost:8080/ping || exit 1"]
-        interval    = 30           # Time between health checks (seconds)
-        timeout     = 5            # Time to wait for a response (seconds)
-        retries     = 3            # Number of retries before unhealthy
-        startPeriod = 10           # Grace period after container starts (seconds)
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 10
       }
     },
     {
@@ -231,17 +224,15 @@ resource "aws_ecs_task_definition" "task" {
         }
       ]
       logConfiguration = {
-          logDriver = "awslogs"
-          options = {
-            awslogs-group         = "/ecs/voice-clone"
-            awslogs-region        = var.region
-            awslogs-stream-prefix = "ecs"
-          }
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/voice-clone"
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
       }
     }
   ])
-
-  
 }
 
 # ================= ECS Service
@@ -251,4 +242,35 @@ resource "aws_ecs_service" "service" {
   task_definition = aws_ecs_task_definition.task.arn
   desired_count   = 1
   launch_type     = "EC2"
+  network_configuration {
+    subnets         = var.private_subnet_ids
+    assign_public_ip = false
+    security_groups = [aws_security_group.ecs_tasks_sg.id] 
+  }
+}
+
+# ================= Security Group for ECS tasks
+resource "aws_security_group" "ecs_tasks_sg" {
+  name        = "ecs-tasks-sg"
+  description = "Security group for ECS tasks"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description = "Allow HTTP inbound to port 8080"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # adjust this to restrict access if needed
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "ecs-tasks-sg"
+  }
 }

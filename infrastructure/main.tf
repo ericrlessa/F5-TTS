@@ -8,6 +8,11 @@ module "gen_audio_queue" {
   sqs_queue_name = var.sqs_queue_name
 }
 
+module "vpc" {
+  source = "./modules/vpc"
+  region = var.region
+}
+
 module "f5tts" {
   source = "./modules/f5tts"
   region = var.region
@@ -20,6 +25,8 @@ module "f5tts" {
   f5tts_image = local.f5tts_image
   sqs_listener_image = local.sqs_listener_image
   bucket_name = var.bucket_name
+  vpc_id = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
 }
 
 module "clone_service" {

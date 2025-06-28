@@ -7,10 +7,6 @@ variable "generate_audio_handler_image" {
   type        = string
 }
 
-variable "region" {
-  type    = string
-}
-
 variable "bucket_name" {
   type    = string
 }

@@ -14,6 +14,7 @@ locals {
   sqs_listener_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/sqs-listener:latest"
   generate_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/gen-audio-handler:latest"
   clone_service_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/lambda-voice-clone:latest"
+  list_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/list-audio-handler:latest"
 }
 
 variable "bucket_name" {
@@ -50,4 +51,9 @@ variable "generate_audio_function_name" {
 variable "clone_service_function_name" {
   type = string
   default = "voice-clone-handler"
+}
+
+variable "list_audio_function_name" {
+  type    = string
+  default = "list-audio"
 }

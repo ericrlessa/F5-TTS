@@ -17,3 +17,8 @@ output "clone_service_url" {
   description = "POST endpoint for clone service"
   value       = "${aws_apigatewayv2_api.api.api_endpoint}/clone-service"
 }
+
+output "list_service_url" {
+  description = "GET endpoint for list service"
+  value       = "${aws_apigatewayv2_api.api.api_endpoint}/audio"
+}

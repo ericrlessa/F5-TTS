@@ -40,11 +40,17 @@ module "clone_service" {
 module "generate_audio" {
   source = "./modules/generate-audio"
   bucket_name = var.bucket_name
-  region = var.region
   generate_audio_handler_image = local.generate_audio_handler_image
   generate_audio_function_name = var.generate_audio_function_name
   sqs_queue_arn = module.gen_audio_queue.sqs_queue_arn
   sqs_queue_url = module.gen_audio_queue.sqs_queue_url
+}
+
+module "list_audio" {
+  source = "./modules/list-audio"
+  bucket_name = var.bucket_name
+  list_audio_function_name = var.list_audio_function_name
+  list_audio_handler_image = local.list_audio_handler_image
 }
 
 module "api_gateway" {
@@ -53,4 +59,6 @@ module "api_gateway" {
   generate_audio_integration_uri = module.generate_audio.lambda_invoke_arn
   generate_audio_function_name = var.generate_audio_function_name
   clone_service_function_name = var.clone_service_function_name
+  list_audio_integration_uri = module.list_audio.lambda_invoke_arn
+  list_service_function_name = var.list_audio_function_name
 }

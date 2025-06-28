@@ -1,0 +1,50 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+# ================= IAM Role for Lambda
+resource "aws_iam_role" "lambda_role" {
+  name = "lambda-list-audio-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
+  })
+}
+
+# Basic Lambda logging
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# Full access to S3 (you may want to limit this to just Get/Put if needed)
+resource "aws_iam_role_policy_attachment" "lambda_s3" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
+# ================= Lambda Function
+resource "aws_lambda_function" "list_audio_handler" {
+  function_name = var.list_audio_function_name
+  package_type  = "Image"
+  image_uri     = var.list_audio_handler_image
+  role          = aws_iam_role.lambda_role.arn
+  timeout       = 60
+
+  environment {
+    variables = {
+      BUCKET_NAME    = var.bucket_name
+    }
+  }
+}

@@ -141,16 +141,47 @@ resource "aws_cloudwatch_metric_alarm" "scale_up" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "scale_down" {
-  alarm_name          = "sqs-scale-down"
-  comparison_operator = "LessThanOrEqualToThreshold"
+  alarm_name          = "sqs-scale-down-math"
   evaluation_periods  = 5
-  threshold           = 0
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  namespace           = "AWS/SQS"
-  dimensions          = { QueueName = var.sqs_queue_name }
-  statistic           = "Sum"
-  period              = 60
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
   alarm_actions       = [aws_autoscaling_policy.scale_down.arn]
+  treat_missing_data  = "notBreaching"
+
+  metric_query {
+    id = "m1"
+    metric {
+      namespace  = "AWS/SQS"
+      metric_name = "ApproximateNumberOfMessagesVisible"
+      period     = 60
+      stat       = "Sum"
+      dimensions = {
+        QueueName = var.sqs_queue_name
+      }
+    }
+    return_data = false
+  }
+
+  metric_query {
+    id = "m2"
+    metric {
+      namespace  = "AWS/SQS"
+      metric_name = "ApproximateNumberOfMessagesNotVisible"
+      period     = 60
+      stat       = "Sum"
+      dimensions = {
+        QueueName = var.sqs_queue_name
+      }
+    }
+    return_data = false
+  }
+
+  metric_query {
+    id          = "e1"
+    expression  = "IF(m1 <= 0 && m2 <= 0, 1, 0)"
+    label       = "BothVisibleAndInflightZero"
+    return_data = true
+  }
 }
 
 resource "aws_autoscaling_policy" "scale_up" {

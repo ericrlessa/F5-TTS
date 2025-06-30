@@ -1,201 +1,285 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Voice Clone App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Voice Clone App</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light p-4">
-    <div class="container">
-        <h2 class="mb-4">Voice Cloning Service</h2>
-        <ul class="nav nav-tabs" id="tabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#clone" type="button">Clone Voice</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#generate" type="button">Generate Audio</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#list" type="button">List Audio</button>
-            </li>
-        </ul>
+  <div class="container">
+    <h2 class="mb-4">Voice Cloning Service</h2>
+    <ul class="nav nav-tabs" id="tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#clone" type="button">Clone Voice</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#generate" type="button">Generate Audio</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#list" type="button">List Audio</button>
+      </li>
+    </ul>
 
-        <div class="tab-content p-4 border border-top-0 bg-white">
-            <!-- Clone Voice -->
-            <div class="tab-pane fade show active" id="clone" role="tabpanel">
-                <form id="cloneForm" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label class="form-label">Model</label>
-                        <input type="text" class="form-control" name="model" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Reference Text</label>
-                        <input type="text" class="form-control" name="ref_text" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Audio File</label>
-                        <input type="file" class="form-control" name="audio" accept="audio/*" required>
-                    </div>
-                    <button class="btn btn-primary">Submit</button>
-                </form>
-                <div id="cloneSuccess" class="alert mt-3 d-none"></div>
-                <div id="cloneSpinner" class="text-center mt-2 d-none">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Processing...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Generate Audio -->
-            <div class="tab-pane fade" id="generate" role="tabpanel">
-                <form id="generateForm">
-                    <div class="mb-3">
-                        <label class="form-label">Model</label>
-                        <input type="text" class="form-control" name="model" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Generate Text</label>
-                        <textarea class="form-control" name="gen_text" rows="4" required></textarea>
-                    </div>
-                    <button class="btn btn-success">Submit</button>
-                </form>
-                <div id="generateSuccess" class="alert mt-3 d-none"></div>
-                <div id="generateSpinner" class="text-center mt-2 d-none">
-                    <div class="spinner-border text-success" role="status">
-                        <span class="visually-hidden">Processing...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- List Audio -->
-            <div class="tab-pane fade" id="list" role="tabpanel">
-                <div class="mb-3">
-                    <label class="form-label">Model</label>
-                    <input type="text" class="form-control" id="modelInput">
-                </div>
-                <button class="btn btn-info mb-3" onclick="loadAudio()">Fetch Audios</button>
-                <div id="listSpinner" class="text-center mb-2 d-none">
-                    <div class="spinner-border text-info" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-                <div id="noAudioMsg" class="alert alert-warning d-none" role="alert">
-                    No audios found for the specified model.
-                </div>
-                <table class="table table-bordered" id="audioTable">
-                    <thead>
-                        <tr>
-                            <th>Key</th>
-                            <th>Player</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+    <div class="tab-content p-4 border border-top-0 bg-white">
+      <!-- Clone Voice Tab -->
+      <div class="tab-pane fade show active" id="clone" role="tabpanel">
+        <form id="cloneForm" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label">Model</label>
+            <input type="text" class="form-control" name="model" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Reference Text</label>
+            <input type="text" class="form-control" name="ref_text" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Audio File</label>
+            <input type="file" class="form-control" name="audio" accept="audio/*">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Or Record Audio</label><br>
+            <button type="button" class="btn btn-secondary mb-2" id="startBtn">🎙️ Start Recording</button>
+            <button type="button" class="btn btn-danger mb-2" id="stopBtn" disabled>🛑 Stop Recording</button>
+            <audio id="recordedAudio" controls class="d-block my-2 d-none"></audio>
+            <div id="recordingStatus" class="text-muted small">Press "Start Recording" to begin</div>
+          </div>
+          <button class="btn btn-primary">Submit</button>
+        </form>
+        <div id="cloneSuccess" class="alert mt-3 d-none"></div>
+        <div id="cloneSpinner" class="text-center mt-2 d-none">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Processing...</span>
+          </div>
         </div>
+      </div>
+
+      <!-- Generate Audio Tab -->
+      <div class="tab-pane fade" id="generate" role="tabpanel">
+        <form id="generateForm">
+          <div class="mb-3">
+            <label class="form-label">Model</label>
+            <input type="text" class="form-control" name="model" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Text to Generate</label>
+            <textarea class="form-control" name="text" rows="3" required></textarea>
+          </div>
+          <button class="btn btn-primary">Generate Audio</button>
+        </form>
+        <div id="generateResult" class="mt-3 d-none">
+          <audio id="generatedAudio" controls class="d-block my-2"></audio>
+          <div id="generateSuccess" class="alert mt-3 d-none"></div>
+        </div>
+        <div id="generateSpinner" class="text-center mt-2 d-none">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Processing...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- List Audio Tab -->
+      <div class="tab-pane fade" id="list" role="tabpanel">
+        <form id="listForm" class="mb-3">
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">Model</label>
+              <input type="text" class="form-control" name="model" required>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary">List Audio Files</button>
+            </div>
+          </div>
+        </form>
+        <div id="audioList" class="list-group">
+          <div class="list-group-item text-muted">Select a model and click "List Audio Files"</div>
+        </div>
+        <div id="listSpinner" class="text-center mt-2 d-none">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        function showMessage(elementId, message, isSuccess = true) {
-            const el = document.getElementById(elementId);
-            el.classList.remove("d-none", "alert-success", "alert-danger");
-            el.classList.add(isSuccess ? "alert-success" : "alert-danger");
-            el.textContent = message;
-        }
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const audioPlayback = document.getElementById('recordedAudio');
+    const statusDiv = document.getElementById('recordingStatus');
+    let recordedBlob = null;
 
-        function toggleSpinner(spinnerId, show) {
-            const spinner = document.getElementById(spinnerId);
-            if (show) {
-                spinner.classList.remove("d-none");
-            } else {
-                spinner.classList.add("d-none");
-            }
-        }
+    async function webmToWav(webmBlob) {
+      return webmBlob;
+    }
 
-        document.getElementById("cloneForm").addEventListener("submit", async function (e) {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            toggleSpinner("cloneSpinner", true);
-            try {
-                const res = await fetch("/clone-service", {
-                    method: "POST",
-                    body: formData
-                });
-                const data = await res.json();
-                if (res.ok && data.message) {
-                    showMessage("cloneSuccess", data.message, true);
-                } else {
-                    showMessage("cloneSuccess", data.detail || "Error occurred.", false);
-                }
-            } catch (err) {
-                showMessage("cloneSuccess", "Server error or connection failed.", false);
-            } finally {
-                toggleSpinner("cloneSpinner", false);
-            }
+    startBtn.addEventListener('click', async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const webmBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          recordedBlob = await webmToWav(webmBlob);
+          const audioUrl = URL.createObjectURL(recordedBlob);
+          audioPlayback.src = audioUrl;
+          audioPlayback.classList.remove("d-none");
+          statusDiv.textContent = "Recording stopped. Ready to submit.";
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        audioChunks = [];
+        mediaRecorder.start();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        statusDiv.textContent = "Recording...";
+      } catch (error) {
+        statusDiv.textContent = "Error: " + error.message;
+        console.error(error);
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+    });
+
+    document.getElementById("cloneForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+
+      if (recordedBlob) {
+        formData.delete("audio");
+        const file = new File([recordedBlob], "recorded.wav", { type: "audio/wav" });
+        formData.append("audio", file);
+      }
+
+      document.getElementById("cloneSpinner").classList.remove("d-none");
+      document.getElementById("cloneSuccess").classList.add("d-none");
+
+      try {
+        const res = await fetch("/clone-service", {
+          method: "POST",
+          body: formData
         });
-
-        document.getElementById("generateForm").addEventListener("submit", async function (e) {
-            e.preventDefault();
-            const form = e.target;
-            const formData = new FormData(form);
-            toggleSpinner("generateSpinner", true);
-            try {
-                const res = await fetch("/generate-audio", {
-                    method: "POST",
-                    body: formData
-                });
-                const data = await res.json();
-                if (res.ok && data.message) {
-                    showMessage("generateSuccess", data.message, true);
-                } else {
-                    showMessage("generateSuccess", data.detail || "Error occurred.", false);
-                }
-            } catch (err) {
-                showMessage("generateSuccess", "Server error or connection failed.", false);
-            } finally {
-                toggleSpinner("generateSpinner", false);
-            }
-        });
-
-        async function loadAudio() {
-            const model = document.getElementById("modelInput").value;
-            toggleSpinner("listSpinner", true);
-            const noAudioMsg = document.getElementById("noAudioMsg");
-            noAudioMsg.classList.add("d-none");
-
-            const tbody = document.querySelector("#audioTable tbody");
-            tbody.innerHTML = "";
-
-            try {
-                const res = await fetch(`/audio?model=${model}`);
-                const data = await res.json();
-
-                if (data.length === 0) {
-                    noAudioMsg.classList.remove("d-none");
-                } else {
-                    data.forEach(item => {
-                        const row = document.createElement("tr");
-                        row.innerHTML = `
-                            <td>${item.key}</td>
-                            <td>
-                                <audio controls>
-                                    <source src="${item.url}" type="audio/mpeg">
-                                </audio>
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                }
-            } catch (err) {
-                noAudioMsg.classList.remove("d-none");
-                noAudioMsg.textContent = "Error loading audios.";
-            } finally {
-                toggleSpinner("listSpinner", false);
-            }
+        const data = await res.json();
+        const msg = document.getElementById("cloneSuccess");
+        msg.classList.remove("d-none", "alert-success", "alert-danger");
+        if (res.ok && data.message) {
+          msg.classList.add("alert-success");
+          msg.textContent = data.message;
+        } else {
+          msg.classList.add("alert-danger");
+          msg.textContent = data.detail || "An error occurred.";
         }
-    </script>
+      } catch (err) {
+        const msg = document.getElementById("cloneSuccess");
+        msg.classList.remove("d-none", "alert-success");
+        msg.classList.add("alert-danger");
+        msg.textContent = "Failed to connect or process.";
+      } finally {
+        document.getElementById("cloneSpinner").classList.add("d-none");
+      }
+    });
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    // ✅ Corrected generate audio handler
+    document.getElementById("generateForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const model = form.model.value.trim();
+      const gen_text = form.text.value.trim();
+
+      document.getElementById("generateSpinner").classList.remove("d-none");
+      document.getElementById("generateSuccess").classList.add("d-none");
+      document.getElementById("generateResult").classList.add("d-none");
+
+      const formData = new FormData();
+      formData.append("model", model);
+      formData.append("gen_text", gen_text);
+
+      try {
+        const res = await fetch("/generate-audio", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+
+        if (res.ok && data.message) {
+          const msg = document.getElementById("generateSuccess");
+          msg.classList.remove("d-none", "alert-danger");
+          msg.classList.add("alert-success");
+          msg.textContent = "🟢 " + data.message;
+          document.getElementById("generateResult").classList.remove("d-none");
+        } else {
+          const msg = document.getElementById("generateSuccess");
+          msg.classList.remove("d-none", "alert-success");
+          msg.classList.add("alert-danger");
+          msg.textContent = data.detail || "Failed to generate audio";
+        }
+      } catch (err) {
+        const msg = document.getElementById("generateSuccess");
+        msg.classList.remove("d-none", "alert-success");
+        msg.classList.add("alert-danger");
+        msg.textContent = "❌ Failed to connect or process.";
+      } finally {
+        document.getElementById("generateSpinner").classList.add("d-none");
+      }
+    });
+
+    document.getElementById("listForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const model = formData.get("model").trim();
+
+      const audioList = document.getElementById("audioList");
+      const spinner = document.getElementById("listSpinner");
+
+      audioList.innerHTML = '<div class="list-group-item text-muted">Loading...</div>';
+      spinner.classList.remove("d-none");
+
+      try {
+        const res = await fetch(`/audio?model=${encodeURIComponent(model)}`);
+        const data = await res.json();
+
+        audioList.innerHTML = '';
+
+        if (res.ok && Array.isArray(data) && data.length > 0) {
+          data.forEach(({ key, url }) => {
+            const item = document.createElement("div");
+            item.className = "list-group-item d-flex justify-content-between align-items-center";
+            item.innerHTML = `
+              <div>
+                <strong>${key}</strong><br>
+                <small class="text-muted">Model: ${model}</small>
+              </div>
+              <audio src="${url}" controls class="ms-3" style="max-width: 250px;"></audio>
+            `;
+            audioList.appendChild(item);
+          });
+        } else {
+          audioList.innerHTML = `<div class="list-group-item text-muted">No audio files found for model "<strong>${model}</strong>"</div>`;
+        }
+      } catch (err) {
+        audioList.innerHTML = '<div class="list-group-item text-danger">❌ Error loading audio list</div>';
+      } finally {
+        spinner.classList.add("d-none");
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

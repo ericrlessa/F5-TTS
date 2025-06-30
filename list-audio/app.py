@@ -35,34 +35,44 @@ def list_audio_files(model: Optional[str] = Query(..., description="Model to sea
     try:
         if not model.endswith("/"):
             model += "/"
-
         model += "gen/"
 
-        logger.info(f"Listing .wav files in bucket {BUCKET_NAME} with prefix '{model}'")
+        logger.info(f"Listing .wav and .txt files in bucket {BUCKET_NAME} with prefix '{model}'")
 
         paginator = s3.get_paginator("list_objects_v2")
         page_iterator = paginator.paginate(Bucket=BUCKET_NAME, Prefix=model)
 
         wav_files = []
+        txt_files = []
+
         for page in page_iterator:
             if "Contents" in page:
-                wav_files.extend(
-                    [obj for obj in page["Contents"] if obj["Key"].endswith(".wav")]
-                )
+                for obj in page["Contents"]:
+                    key = obj["Key"]
+                    if key.endswith(".wav"):
+                        wav_files.append(obj)
+                    elif key.endswith(".txt"):
+                        txt_files.append(obj)
 
-        if not wav_files:
+        wav_keys = {obj["Key"] for obj in wav_files}
+        pending_txts = [txt for txt in txt_files if txt["Key"] + ".wav" not in wav_keys]
+
+        all_files = wav_files + pending_txts
+        if not all_files:
             return []
 
-        wav_files_sorted = sorted(wav_files, key=lambda x: x["LastModified"])
+        all_files_sorted = sorted(all_files, key=lambda x: x.get("LastModified"), reverse=True)
 
         result = []
-        for obj in wav_files_sorted:
-            presigned_url = s3.generate_presigned_url(
-                ClientMethod="get_object",
-                Params={"Bucket": BUCKET_NAME, "Key": obj["Key"]},
-                ExpiresIn=3600,
+        for obj in all_files_sorted:
+            key = obj["Key"]
+            url = s3.generate_presigned_url(
+                    ClientMethod="get_object",
+                    Params={"Bucket": BUCKET_NAME, "Key": key},
+                    ExpiresIn=3600,
             )
-            result.append({"key": obj["Key"], "url": presigned_url})
+
+            result.append({"key": key, "url": url})
 
         return result
 

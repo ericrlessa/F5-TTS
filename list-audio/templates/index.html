@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Voice Clone App</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 <body class="bg-light p-4">
   <div class="container">
@@ -26,18 +26,18 @@
         <form id="cloneForm" enctype="multipart/form-data">
           <div class="mb-3">
             <label class="form-label">Model</label>
-            <input type="text" class="form-control" name="model" required>
+            <input type="text" class="form-control" name="model" required />
           </div>
           <div class="mb-3">
             <label class="form-label">Reference Text</label>
-            <input type="text" class="form-control" name="ref_text" required>
+            <input type="text" class="form-control" name="ref_text" required />
           </div>
           <div class="mb-3">
             <label class="form-label">Audio File</label>
-            <input type="file" class="form-control" name="audio" accept="audio/*">
+            <input type="file" class="form-control" name="audio" accept="audio/*" />
           </div>
           <div class="mb-3">
-            <label class="form-label">Or Record Audio</label><br>
+            <label class="form-label">Or Record Audio</label><br />
             <button type="button" class="btn btn-secondary mb-2" id="startBtn">🎙️ Start Recording</button>
             <button type="button" class="btn btn-danger mb-2" id="stopBtn" disabled>🛑 Stop Recording</button>
             <audio id="recordedAudio" controls class="d-block my-2 d-none"></audio>
@@ -58,7 +58,7 @@
         <form id="generateForm">
           <div class="mb-3">
             <label class="form-label">Model</label>
-            <input type="text" class="form-control" name="model" required>
+            <input type="text" class="form-control" name="model" required />
           </div>
           <div class="mb-3">
             <label class="form-label">Text to Generate</label>
@@ -82,7 +82,7 @@
           <div class="row">
             <div class="col-md-6">
               <label class="form-label">Model</label>
-              <input type="text" class="form-control" name="model" required>
+              <input type="text" class="form-control" name="model" required />
             </div>
             <div class="col-md-6 d-flex align-items-end">
               <button type="submit" class="btn btn-primary">List Audio Files</button>
@@ -104,21 +104,21 @@
   <script>
     let mediaRecorder;
     let audioChunks = [];
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const audioPlayback = document.getElementById('recordedAudio');
-    const statusDiv = document.getElementById('recordingStatus');
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const audioPlayback = document.getElementById("recordedAudio");
+    const statusDiv = document.getElementById("recordingStatus");
     let recordedBlob = null;
 
     async function webmToWav(webmBlob) {
       return webmBlob;
     }
 
-    startBtn.addEventListener('click', async () => {
+    startBtn.addEventListener("click", async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
-        
+
         mediaRecorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             audioChunks.push(event.data);
@@ -126,13 +126,13 @@
         };
 
         mediaRecorder.onstop = async () => {
-          const webmBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const webmBlob = new Blob(audioChunks, { type: "audio/webm" });
           recordedBlob = await webmToWav(webmBlob);
           const audioUrl = URL.createObjectURL(recordedBlob);
           audioPlayback.src = audioUrl;
           audioPlayback.classList.remove("d-none");
           statusDiv.textContent = "Recording stopped. Ready to submit.";
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach((track) => track.stop());
         };
 
         audioChunks = [];
@@ -146,8 +146,8 @@
       }
     });
 
-    stopBtn.addEventListener('click', () => {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    stopBtn.addEventListener("click", () => {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
         startBtn.disabled = false;
         stopBtn.disabled = true;
@@ -171,7 +171,7 @@
       try {
         const res = await fetch("/clone-service", {
           method: "POST",
-          body: formData
+          body: formData,
         });
         const data = await res.json();
         const msg = document.getElementById("cloneSuccess");
@@ -193,8 +193,8 @@
       }
     });
 
-    // ✅ Corrected generate audio handler
-    document.getElementById("generateForm").addEventListener("submit", async function(e) {
+    // Generate Audio handler with correct form data keys
+    document.getElementById("generateForm").addEventListener("submit", async function (e) {
       e.preventDefault();
       const form = e.target;
       const model = form.model.value.trim();
@@ -211,7 +211,7 @@
       try {
         const res = await fetch("/generate-audio", {
           method: "POST",
-          body: formData
+          body: formData,
         });
         const data = await res.json();
 
@@ -237,7 +237,7 @@
       }
     });
 
-    document.getElementById("listForm").addEventListener("submit", async function(e) {
+    document.getElementById("listForm").addEventListener("submit", async function (e) {
       e.preventDefault();
       const form = e.target;
       const formData = new FormData(form);
@@ -253,19 +253,34 @@
         const res = await fetch(`/audio?model=${encodeURIComponent(model)}`);
         const data = await res.json();
 
-        audioList.innerHTML = '';
+        audioList.innerHTML = "";
 
         if (res.ok && Array.isArray(data) && data.length > 0) {
           data.forEach(({ key, url }) => {
             const item = document.createElement("div");
             item.className = "list-group-item d-flex justify-content-between align-items-center";
-            item.innerHTML = `
-              <div>
-                <strong>${key}</strong><br>
-                <small class="text-muted">Model: ${model}</small>
-              </div>
-              <audio src="${url}" controls class="ms-3" style="max-width: 250px;"></audio>
-            `;
+
+            if (key.endsWith(".txt")) {
+              item.innerHTML = `
+                <div>
+                  <strong>${key}</strong><br />
+                  <small class="text-muted">Model: ${model}</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-warning text-dark">Pending</span>
+                  <a href="${url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">View File</a>
+                </div>
+              `;
+            } else {
+              item.innerHTML = `
+                <div>
+                  <strong>${key}</strong><br />
+                  <small class="text-muted">Model: ${model}</small>
+                </div>
+                <audio src="${url}" controls class="ms-3" style="max-width: 250px;"></audio>
+              `;
+            }
+
             audioList.appendChild(item);
           });
         } else {

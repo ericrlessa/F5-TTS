@@ -61,7 +61,7 @@ async def generate_audio(
 
         return JSONResponse(
             status_code=200,
-            content={"message": "File uploaded to S3", "s3_key": s3_key}
+            content={"message": f"Text added to the queue. Audio generation will begin shortly. File to be processed: {s3_key}"}
         )
 
     except Exception as e:

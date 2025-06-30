@@ -23,7 +23,7 @@
         <div class="tab-content p-4 border border-top-0 bg-white">
             <!-- Clone Voice -->
             <div class="tab-pane fade show active" id="clone" role="tabpanel">
-                <form method="post" action="/clone-service" enctype="multipart/form-data">
+                <form id="cloneForm" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label class="form-label">Model</label>
                         <input type="text" class="form-control" name="model" required>
@@ -38,11 +38,17 @@
                     </div>
                     <button class="btn btn-primary">Submit</button>
                 </form>
+                <div id="cloneSuccess" class="alert mt-3 d-none"></div>
+                <div id="cloneSpinner" class="text-center mt-2 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Generate Audio -->
             <div class="tab-pane fade" id="generate" role="tabpanel">
-                <form method="post" action="/generate-audio">
+                <form id="generateForm">
                     <div class="mb-3">
                         <label class="form-label">Model</label>
                         <input type="text" class="form-control" name="model" required>
@@ -53,6 +59,12 @@
                     </div>
                     <button class="btn btn-success">Submit</button>
                 </form>
+                <div id="generateSuccess" class="alert mt-3 d-none"></div>
+                <div id="generateSpinner" class="text-center mt-2 d-none">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                </div>
             </div>
 
             <!-- List Audio -->
@@ -62,6 +74,14 @@
                     <input type="text" class="form-control" id="modelInput">
                 </div>
                 <button class="btn btn-info mb-3" onclick="loadAudio()">Fetch Audios</button>
+                <div id="listSpinner" class="text-center mb-2 d-none">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="noAudioMsg" class="alert alert-warning d-none" role="alert">
+                    No audios found for the specified model.
+                </div>
                 <table class="table table-bordered" id="audioTable">
                     <thead>
                         <tr>
@@ -76,26 +96,103 @@
     </div>
 
     <script>
+        function showMessage(elementId, message, isSuccess = true) {
+            const el = document.getElementById(elementId);
+            el.classList.remove("d-none", "alert-success", "alert-danger");
+            el.classList.add(isSuccess ? "alert-success" : "alert-danger");
+            el.textContent = message;
+        }
+
+        function toggleSpinner(spinnerId, show) {
+            const spinner = document.getElementById(spinnerId);
+            if (show) {
+                spinner.classList.remove("d-none");
+            } else {
+                spinner.classList.add("d-none");
+            }
+        }
+
+        document.getElementById("cloneForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            toggleSpinner("cloneSpinner", true);
+            try {
+                const res = await fetch("/clone-service", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok && data.message) {
+                    showMessage("cloneSuccess", data.message, true);
+                } else {
+                    showMessage("cloneSuccess", data.detail || "Error occurred.", false);
+                }
+            } catch (err) {
+                showMessage("cloneSuccess", "Server error or connection failed.", false);
+            } finally {
+                toggleSpinner("cloneSpinner", false);
+            }
+        });
+
+        document.getElementById("generateForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            toggleSpinner("generateSpinner", true);
+            try {
+                const res = await fetch("/generate-audio", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok && data.message) {
+                    showMessage("generateSuccess", data.message, true);
+                } else {
+                    showMessage("generateSuccess", data.detail || "Error occurred.", false);
+                }
+            } catch (err) {
+                showMessage("generateSuccess", "Server error or connection failed.", false);
+            } finally {
+                toggleSpinner("generateSpinner", false);
+            }
+        });
+
         async function loadAudio() {
             const model = document.getElementById("modelInput").value;
-            const res = await fetch(`/audio?model=${model}`);
-            const data = await res.json();
+            toggleSpinner("listSpinner", true);
+            const noAudioMsg = document.getElementById("noAudioMsg");
+            noAudioMsg.classList.add("d-none");
 
             const tbody = document.querySelector("#audioTable tbody");
             tbody.innerHTML = "";
 
-            data.forEach(item => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${item.key}</td>
-                    <td>
-                        <audio controls>
-                            <source src="${item.url}" type="audio/mpeg">
-                        </audio>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
+            try {
+                const res = await fetch(`/audio?model=${model}`);
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    noAudioMsg.classList.remove("d-none");
+                } else {
+                    data.forEach(item => {
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>${item.key}</td>
+                            <td>
+                                <audio controls>
+                                    <source src="${item.url}" type="audio/mpeg">
+                                </audio>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (err) {
+                noAudioMsg.classList.remove("d-none");
+                noAudioMsg.textContent = "Error loading audios.";
+            } finally {
+                toggleSpinner("listSpinner", false);
+            }
         }
     </script>
 

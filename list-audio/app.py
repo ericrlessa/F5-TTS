@@ -1,6 +1,9 @@
 import boto3
 import os
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from mangum import Mangum
 from typing import List, Optional
 from pydantic import BaseModel
@@ -12,6 +15,9 @@ logger.setLevel(logging.INFO)
 app = FastAPI()
 handler = Mangum(app)
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
 REGION_NAME = os.getenv("AWS_REGION", "us-east-1")
 s3 = boto3.client("s3", region_name=REGION_NAME)
 BUCKET_NAME = os.environ["BUCKET_NAME"]
@@ -19,6 +25,10 @@ BUCKET_NAME = os.environ["BUCKET_NAME"]
 class AudioFile(BaseModel):
     key: str
     url: str
+
+@app.get("/", response_class=HTMLResponse)
+async def homepage(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/audio", response_model=List[AudioFile])
 def list_audio_files(model: Optional[str] = Query(..., description="Model to search audios")):

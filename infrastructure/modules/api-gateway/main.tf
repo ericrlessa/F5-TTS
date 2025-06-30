@@ -45,6 +45,12 @@ resource "aws_apigatewayv2_route" "list_audio_route" {
   target    = "integrations/${aws_apigatewayv2_integration.list_audio_integration.id}"
 }
 
+resource "aws_apigatewayv2_route" "index_route" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "GET /"
+  target    = "integrations/${aws_apigatewayv2_integration.list_audio_integration.id}"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.api.id
   name        = "$default"
@@ -73,4 +79,12 @@ resource "aws_lambda_permission" "allow_apigw_list_service" {
   function_name = var.list_service_function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/GET/audio"
+}
+
+resource "aws_lambda_permission" "allow_apigw_index" {
+  statement_id  = "AllowInvokeFromApiGWIndexService"
+  action        = "lambda:InvokeFunction"
+  function_name = var.list_service_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/GET/"
 }

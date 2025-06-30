@@ -1,35 +1,36 @@
-import json
+from fastapi import FastAPI, Form, HTTPException
+from fastapi.responses import JSONResponse
 import boto3
 import os
-import base64
 import uuid
-
+import json
+from mangum import Mangum
 import logging
-logger = logging.getLogger()
+
+# Setup
+app = FastAPI()
+handler = Mangum(app)
+
+logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
 
 REGION_NAME = os.getenv("AWS_REGION", "us-east-1")
-QUEUE_URL = os.environ["SQS_QUEUE_URL"]
+QUEUE_URL = os.environ.get("SQS_QUEUE_URL")
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
 sqs = boto3.client("sqs", region_name=REGION_NAME)
 s3 = boto3.client("s3", region_name=REGION_NAME)
-BUCKET_NAME = os.environ["BUCKET_NAME"]
 
-def lambda_handler(event, context):
+@app.post("/generate-audio")
+async def generate_audio(
+    model: str = Form(...),
+    gen_text: str = Form(...)
+):
     try:
-        # Parse input
-        body = event.get("body")
-        if event.get("isBase64Encoded"):
-            body = base64.b64decode(body).decode("utf-8")
-        data = json.loads(body)
-
-        model = data.get("model")
-        gen_text = data.get("gen_text")
-
         if not model or not gen_text:
-            return {"statusCode": 400, "body": "Missing 'model' or 'gen_text'"}
+            raise HTTPException(status_code=400, detail="Missing 'model' or 'gen_text'")
 
-        # Decode and store text in S3
+        # Save gen_text to S3
         text_bytes = gen_text.encode('utf-8')
         text_filename = f"{uuid.uuid4()}.txt"
         s3_key = f"{model}/gen/{text_filename}"
@@ -41,6 +42,7 @@ def lambda_handler(event, context):
             ContentType="text/plain"
         )
 
+        # Send message to SQS
         message_body = {
             'bucket': BUCKET_NAME,
             's3_key_gen': s3_key,
@@ -54,19 +56,14 @@ def lambda_handler(event, context):
             MessageBody=json.dumps(message_body)
         )
 
-        logger.info(f"Uploading to S3 at key: {s3_key}")
-        logger.info(f"Sending SQS message: {message_body}")
+        logger.info(f"✅ Uploaded text to S3: {s3_key}")
+        logger.info(f"📤 Sent SQS message: {message_body}")
 
-        return {
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "File uploaded to S3",
-                "s3_key": s3_key
-            })
-        }
+        return JSONResponse(
+            status_code=200,
+            content={"message": "File uploaded to S3", "s3_key": s3_key}
+        )
 
     except Exception as e:
-        return {
-            "statusCode": 500,
-            "body": str(e)
-        }
+        logger.exception("❌ Failed to process form submission")
+        raise HTTPException(status_code=500, detail=str(e))

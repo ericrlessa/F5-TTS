@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Clone App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light p-4">
+    <div class="container">
+        <h2 class="mb-4">Voice Cloning Service</h2>
+        <ul class="nav nav-tabs" id="tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#clone" type="button">Clone Voice</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#generate" type="button">Generate Audio</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#list" type="button">List Audio</button>
+            </li>
+        </ul>
+
+        <div class="tab-content p-4 border border-top-0 bg-white">
+            <!-- Clone Voice -->
+            <div class="tab-pane fade show active" id="clone" role="tabpanel">
+                <form method="post" action="/clone-service" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Model</label>
+                        <input type="text" class="form-control" name="model" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reference Text</label>
+                        <input type="text" class="form-control" name="ref_text" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Audio File</label>
+                        <input type="file" class="form-control" name="audio" accept="audio/*" required>
+                    </div>
+                    <button class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+
+            <!-- Generate Audio -->
+            <div class="tab-pane fade" id="generate" role="tabpanel">
+                <form method="post" action="/generate-audio">
+                    <div class="mb-3">
+                        <label class="form-label">Model</label>
+                        <input type="text" class="form-control" name="model" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Generate Text</label>
+                        <textarea class="form-control" name="gen_text" rows="4" required></textarea>
+                    </div>
+                    <button class="btn btn-success">Submit</button>
+                </form>
+            </div>
+
+            <!-- List Audio -->
+            <div class="tab-pane fade" id="list" role="tabpanel">
+                <div class="mb-3">
+                    <label class="form-label">Model</label>
+                    <input type="text" class="form-control" id="modelInput">
+                </div>
+                <button class="btn btn-info mb-3" onclick="loadAudio()">Fetch Audios</button>
+                <table class="table table-bordered" id="audioTable">
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Player</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadAudio() {
+            const model = document.getElementById("modelInput").value;
+            const res = await fetch(`/audio?model=${model}`);
+            const data = await res.json();
+
+            const tbody = document.querySelector("#audioTable tbody");
+            tbody.innerHTML = "";
+
+            data.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.key}</td>
+                    <td>
+                        <audio controls>
+                            <source src="${item.url}" type="audio/mpeg">
+                        </audio>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -226,7 +226,7 @@ resource "aws_ecs_task_definition" "task" {
       environment = [
         {
           name  = "MODEL_SERVER_TIMEOUT"
-          value = 7200
+          value = "7200"
         }
       ]
       logConfiguration = {

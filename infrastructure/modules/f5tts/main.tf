@@ -223,6 +223,12 @@ resource "aws_ecs_task_definition" "task" {
           value = "1"
         }
       ]
+      environment = [
+        {
+          name  = "MODEL_SERVER_TIMEOUT"
+          value = 7200
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {

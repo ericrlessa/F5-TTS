@@ -24,7 +24,15 @@ BUCKET_NAME = os.environ["BUCKET_NAME"]
 
 class AudioFile(BaseModel):
     key: str
-    url: str
+    url_txt: str
+    url_wav: Optional[str]
+
+def generate_presigned_url(key):
+    return s3.generate_presigned_url(
+                        ClientMethod="get_object",
+                        Params={"Bucket": BUCKET_NAME, "Key": key},
+                        ExpiresIn=3600,
+                    )
 
 @app.get("/", response_class=HTMLResponse)
 async def homepage(request: Request):
@@ -54,25 +62,24 @@ def list_audio_files(model: Optional[str] = Query(..., description="Model to sea
                     elif key.endswith(".txt"):
                         txt_files.append(obj)
 
-        wav_keys = {obj["Key"] for obj in wav_files}
-        pending_txts = [txt for txt in txt_files if txt["Key"] + ".wav" not in wav_keys]
 
-        all_files = wav_files + pending_txts
-        if not all_files:
-            return []
-
-        all_files_sorted = sorted(all_files, key=lambda x: x.get("LastModified"), reverse=True)
+        txt_files = sorted(txt_files, key=lambda x: x.get("LastModified"), reverse=True)
 
         result = []
-        for obj in all_files_sorted:
-            key = obj["Key"]
-            url = s3.generate_presigned_url(
-                    ClientMethod="get_object",
-                    Params={"Bucket": BUCKET_NAME, "Key": key},
-                    ExpiresIn=3600,
-            )
+        for txt in txt_files:
+            key = txt["Key"]
+            url_txt = generate_presigned_url(key)
+            
+            matching_wavs = (wav["Key"] for wav in wav_files if wav["Key"].startswith(key))
+            key_wav = next(matching_wavs, None)
 
-            result.append({"key": key, "url": url})
+            url_wav = generate_presigned_url(key_wav) if key_wav else None
+
+            result.append({
+                "key": key,
+                "url_txt": url_txt,
+                "url_wav": url_wav
+            })
 
         return result
 

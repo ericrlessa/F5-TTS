@@ -56,10 +56,10 @@
             <input type="hidden" name="ref_text" value="The quick brown fox jumps over the lazy dog near the quiet riverbank at sunrise." />
           </div>
           <div class="mb-3">
+            <div id="recordingStatus" class="text-muted small">Press "Start Recording" to begin</div>
             <button type="button" class="btn btn-secondary mb-2" id="startBtn">🎙️ Start Recording</button>
             <button type="button" class="btn btn-danger mb-2" id="stopBtn" disabled>🛑 Stop Recording</button>
             <audio id="recordedAudio" controls class="d-block my-2 d-none"></audio>
-            <div id="recordingStatus" class="text-muted small">Press "Start Recording" to begin</div>
 
             <div class="circular-progress mt-3">
               <svg width="100" height="100">
@@ -314,30 +314,32 @@
         audioList.innerHTML = "";
 
         if (res.ok && Array.isArray(data) && data.length > 0) {
-          data.forEach(({ key, url }) => {
+          data.forEach(({ key, url_txt, url_wav }) => {
             const item = document.createElement("div");
             item.className = "list-group-item d-flex justify-content-between align-items-center";
 
-            if (key.endsWith(".txt")) {
-              item.innerHTML = `
+            let innerHTML = `
                 <div>
                   <strong>${key}</strong><br />
                   <small class="text-muted">Model: ${model}</small>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-warning text-dark">Pending</span>
-                  <a href="${url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">View File</a>
-                </div>
+            `;
+
+            if (url_wav) {
+              innerHTML += `
+                <audio src="${url_wav}" controls class="ms-3" style="max-width: 250px;"></audio>
               `;
-            } else {
-              item.innerHTML = `
-                <div>
-                  <strong>${key}</strong><br />
-                  <small class="text-muted">Model: ${model}</small>
-                </div>
-                <audio src="${url}" controls class="ms-3" style="max-width: 250px;"></audio>
-              `;
+            }else{
+               innerHTML += `<span class="badge bg-warning text-dark">Pending</span>`
             }
+
+            innerHTML += `
+                  <a href="${url_txt}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">View Text</a>
+                </div>
+              `;
+
+            item.innerHTML = innerHTML
 
             audioList.appendChild(item);
           });

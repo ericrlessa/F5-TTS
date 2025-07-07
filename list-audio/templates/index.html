@@ -7,7 +7,11 @@
 </head>
 <body class="bg-light p-4">
   <div class="container">
+  
     <h2 class="mb-4">Voice Cloning Service</h2>
+
+    <div id="cloneSuccess" class="alert mt-3 d-none"></div>
+
     <ul class="nav nav-tabs" id="tabs" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#clone" type="button">Clone Voice</button>
@@ -48,7 +52,7 @@
           </div>
           <button class="btn btn-primary">Submit</button>
         </form>
-        <div id="cloneSuccess" class="alert mt-3 d-none"></div>
+        
         <div id="cloneSpinner" class="text-center mt-2 d-none">
           <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Processing...</span>

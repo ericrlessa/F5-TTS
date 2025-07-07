@@ -3,13 +3,14 @@ from fastapi.responses import JSONResponse
 import boto3
 from mangum import Mangum
 import os
+from pydub import AudioSegment
+import io
 
 app = FastAPI()
 handler = Mangum(app)
 
-# Set up your AWS S3 client
 s3_client = boto3.client('s3')
-BUCKET_NAME = os.environ.get("BUCKET_NAME")  # fallback for testing
+BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
 @app.post("/clone-service")
 async def clone_voice(
@@ -21,6 +22,21 @@ async def clone_voice(
         # Read raw bytes from uploaded audio file
         audio_bytes = await audio.read()
 
+        # Load audio with pydub
+        audio_segment = AudioSegment.from_file(io.BytesIO(audio_bytes))
+
+        # Generate 2 seconds of silence with same parameters as input audio
+        silence = AudioSegment.silent(duration=2000, frame_rate=audio_segment.frame_rate)
+
+        # Append silence to the original audio
+        combined = audio_segment + silence
+
+        # Export combined audio back to bytes in WAV format
+        buf = io.BytesIO()
+        combined.export(buf, format="wav")
+        buf.seek(0)
+        combined_bytes = buf.read()
+
         # Save to S3
         s3_key_audio = f"{model}/ref.wav"
         s3_key_ref_text = f"{model}/ref_text.txt"
@@ -28,8 +44,8 @@ async def clone_voice(
         s3_client.put_object(
             Bucket=BUCKET_NAME,
             Key=s3_key_audio,
-            Body=audio_bytes,
-            ContentType=audio.content_type or 'audio/wav'
+            Body=combined_bytes,
+            ContentType='audio/wav'
         )
 
         s3_client.put_object(

@@ -29,8 +29,11 @@
             <input type="text" class="form-control" name="model" required />
           </div>
           <div class="mb-3">
-            <label class="form-label">Reference Text</label>
-            <input type="text" class="form-control" name="ref_text" required />
+            <label class="form-label">Please read this sentence aloud</label>
+            <div class="form-control bg-light" style="height:auto;" readonly>
+                The quick brown fox jumps over the lazy dog near the quiet riverbank at sunrise.
+            </div>
+            <input type="hidden" name="ref_text" value="The quick brown fox jumps over the lazy dog near the quiet riverbank at sunrise." />
           </div>
           <div class="mb-3">
             <label class="form-label">Audio File</label>

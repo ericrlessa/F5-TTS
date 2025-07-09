@@ -248,6 +248,7 @@
         if (res.ok && data.message) {
           msg.classList.add("alert-success");
           msg.textContent = data.message;
+          updateVoiceDropdown(sharedModel);
         } else {
           msg.classList.add("alert-danger");
           msg.textContent = data.detail || "An error occurred.";

@@ -45,7 +45,7 @@ async def voice(request: Request, model: str = ""):
                 for obj in page["Contents"]:
                     key = obj["Key"]
                     parts = key.split("/")
-                    if len(parts) >= 2:
+                    if len(parts) >= 2 and parts[1]:
                         voices.add(parts[1])  # get the `voice`
         sorted_voices = sorted(voices)
         return sorted_voices

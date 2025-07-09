@@ -93,11 +93,19 @@
             <input type="text" id="generateModel" placeholder="Enter your model name here" class="form-control" name="model" required />
           </div>
           <div class="mb-3">
-            <label class="form-label">Voice</label>
-            <select class="form-control" id="generateVoice" name="voice" required>
-              <option value="" disabled selected hidden>Select a voice</option>
+            <label class="form-label">My Voices</label>
+            <select class="form-control" id="generateVoice" name="voice">
+                <option value="" selected>Select a voice</option>
             </select>
           </div>
+
+          <div class="mb-3">
+            <label class="form-label">Pre-defined Voices</label>
+            <select class="form-control" id="generateVoicePredefined" name="voicePredefined">
+                <option value="" selected>Select a voice</option>
+            </select>
+          </div>
+
           <div class="mb-3">
             <label class="form-label">Text to Generate</label>
             <textarea class="form-control" name="text" rows="3" required></textarea>
@@ -248,7 +256,7 @@
         if (res.ok && data.message) {
           msg.classList.add("alert-success");
           msg.textContent = data.message;
-          updateVoiceDropdown(sharedModel);
+          updateMyVoiceDropdown(sharedModel);
         } else {
           msg.classList.add("alert-danger");
           msg.textContent = data.detail || "An error occurred.";
@@ -270,6 +278,18 @@
       const model = form.model.value.trim();
       const gen_text = form.text.value.trim();
       const voice = form.voice.value.trim();
+      const voicePredefined = form.voicePredefined.value.trim();
+      
+      const onlyOneSelected = (voice && !voicePredefined) || (!voice && voicePredefined);
+
+      if (!onlyOneSelected) {
+            const msg = document.getElementById("generateSuccess");
+            msg.classList.remove("d-none", "alert-success");
+            msg.classList.add("alert-danger");
+            msg.textContent = "❌ Please select either a custom voice *or* a pre-defined voice.";
+            document.getElementById("generateResult").classList.remove("d-none");
+            return;
+      }
 
       document.getElementById("generateSpinner").classList.remove("d-none");
       document.getElementById("generateSuccess").classList.add("d-none");
@@ -278,7 +298,14 @@
       const formData = new FormData();
       formData.append("model", model);
       formData.append("gen_text", gen_text);
-      formData.append("voice", voice);
+      
+      if(voicePredefined){
+        formData.append("pre_defined", true);
+        formData.append("voice", voicePredefined);
+      }else{
+        formData.append("pre_defined", false);
+        formData.append("voice", voice);
+      }
 
       try {
         const res = await fetch("/generate-audio", {
@@ -375,31 +402,50 @@
       });
     }
 
-    function updateVoiceDropdown(model) {
-      const voiceSelect = document.getElementById("generateVoice");
-      if (!model) return;
-      voiceSelect.innerHTML = '<option value="" disabled selected hidden>Loading voices...</option>';
+    function updateVoicePredefinedDropdown(){
+      updateVoiceDropdown("pre-defined", "generateVoicePredefined");
+    }
 
-      fetch(`/voice?model=${encodeURIComponent(model)}`)
-        .then(res => res.json())
-        .then(voices => {
-          voiceSelect.innerHTML = '';
-          if (Array.isArray(voices) && voices.length > 0) {
-            voiceSelect.innerHTML = '<option value="" disabled selected hidden>Select a voice</option>';
-            voices.forEach(voice => {
-              const opt = document.createElement("option");
-              opt.value = voice;
-              opt.textContent = voice;
-              voiceSelect.appendChild(opt);
+    function updateMyVoiceDropdown(model){
+      updateVoiceDropdown(model, "generateVoice");
+    }
+
+    function updateVoiceDropdown(model, selectId) {
+        const voiceSelect = document.getElementById(selectId);
+        if (!voiceSelect || !model) return;
+
+        // Show loading placeholder
+        voiceSelect.innerHTML = '<option value="" selected hidden>Loading voices...</option>';
+
+        fetch(`/voice?model=${encodeURIComponent(model)}`)
+            .then(res => res.json())
+            .then(voices => {
+            // Clear previous options
+            voiceSelect.innerHTML = '';
+
+            if (Array.isArray(voices) && voices.length > 0) {
+                // Add default "Select a voice" placeholder
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select a voice';
+                defaultOption.selected = true;
+                voiceSelect.appendChild(defaultOption);
+
+                // Add each voice as an option
+                voices.forEach(voice => {
+                const opt = document.createElement("option");
+                opt.value = voice;
+                opt.textContent = voice;
+                voiceSelect.appendChild(opt);
+                });
+            } else {
+                voiceSelect.innerHTML = '<option value="" disabled selected>No voices found</option>';
+            }
+            })
+            .catch(err => {
+            console.error("Error loading voices:", err);
+            voiceSelect.innerHTML = '<option value="" disabled selected>Error loading voices</option>';
             });
-          } else {
-            voiceSelect.innerHTML = '<option value="" disabled selected>No voices found</option>';
-          }
-        })
-        .catch(err => {
-          console.error("Error loading voices:", err);
-          voiceSelect.innerHTML = '<option value="" disabled selected>Error loading voices</option>';
-        });
     }
 
     document.querySelectorAll('input[name="model"]').forEach(input => {
@@ -408,7 +454,7 @@
         if (newModel && newModel !== sharedModel) {
           sharedModel = newModel;
           syncModelInputs();
-          updateVoiceDropdown(sharedModel);
+          updateMyVoiceDropdown(sharedModel);
         }
       });
     });
@@ -418,6 +464,8 @@
         syncModelInputs();
       })
     });
+
+    updateVoicePredefinedDropdown();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

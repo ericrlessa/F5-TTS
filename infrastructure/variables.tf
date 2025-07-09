@@ -4,6 +4,11 @@ variable "region" {
   default     = "us-east-1"
 }
 
+variable "env" {
+  description = "environment"
+  type        = string  
+}
+
 variable "account" {
   description = "AWS account to deploy resources"
   type        = string

@@ -9,7 +9,7 @@ terraform {
 
 # ================= IAM policy for ECS instances to access SQS and S3
 resource "aws_iam_policy" "ecs_sqs_s3_policy" {
-  name        = "ecs_sqs_s3_policy"
+  name        = "ecs-sqs-s3-policy-${var.env}"
   description = "Allow ECS instances to receive messages from SQS and read S3 objects"
 
   policy = jsonencode({
@@ -50,7 +50,7 @@ data "aws_iam_policy_document" "ecs_assume" {
 }
 
 resource "aws_iam_role" "ecs_instance_role" {
-  name               = "ecsInstanceRole-f5tts"
+  name               = "ecsInstanceRole-f5tts-${var.env}"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
 }
 
@@ -65,7 +65,7 @@ resource "aws_iam_role_policy_attachment" "ecs_sqs_s3_attach" {
 }
 
 resource "aws_iam_instance_profile" "ecs_profile" {
-  name = "ecsInstanceProfile"
+  name = "ecsInstanceProfile-${var.env}"
   role = aws_iam_role.ecs_instance_role.name
 }
 

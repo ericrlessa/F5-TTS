@@ -18,8 +18,7 @@ handler = Mangum(app)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-REGION_NAME = os.getenv("AWS_REGION", "us-east-1")
-s3 = boto3.client("s3", region_name=REGION_NAME)
+s3 = boto3.client("s3", region_name="us-east-1")
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 
 class AudioFile(BaseModel):

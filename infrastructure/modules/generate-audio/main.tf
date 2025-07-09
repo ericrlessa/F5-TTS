@@ -9,7 +9,7 @@ terraform {
 
 # ================= IAM Role for Lambda
 resource "aws_iam_role" "lambda_role" {
-  name = "lambda-gen-text-role"
+  name = "lambda-gen-text-role-${var.env}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -36,7 +36,7 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
 
 # Custom inline policy for Lambda to send messages to SQS
 resource "aws_iam_policy" "lambda_sqs_policy" {
-  name        = "lambda-sqs-send-policy"
+  name        = "lambda-sqs-send-policy-${var.env}"
   description = "Allow Lambda to send messages to SQS queue"
 
   policy = jsonencode({

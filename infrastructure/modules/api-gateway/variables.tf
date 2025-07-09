@@ -21,3 +21,8 @@ variable "clone_service_function_name" {
 variable "list_service_function_name" {
   type = string
 }
+
+variable "env" {
+  description = "environment"
+  type        = string  
+}

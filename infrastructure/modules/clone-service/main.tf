@@ -33,7 +33,7 @@ resource "aws_lambda_function" "voice_clone_handler" {
 }
 
 resource "aws_iam_role" "lambda_exec_role" {
-  name = "voice-clone-handler-exec"
+  name = "voice-clone-handler-exec-${var.env}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{

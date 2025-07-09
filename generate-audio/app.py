@@ -19,7 +19,7 @@ QUEUE_URL = os.environ.get("SQS_QUEUE_URL")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
 sqs = boto3.client("sqs", region_name=REGION_NAME)
-s3 = boto3.client("s3", region_name=REGION_NAME)
+s3 = boto3.client("s3", region_name="us-east-1")
 
 @app.post("/generate-audio")
 async def generate_audio(

@@ -2,6 +2,10 @@ provider "aws" {
   region = var.region
 }
 
+terraform {
+  backend "s3" {}
+}
+
 module "gen_audio_queue" {
   source = "./modules/gen-audio-queue"
   region = var.region
@@ -27,6 +31,7 @@ module "f5tts" {
   bucket_name = var.bucket_name
   vpc_id = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
+  env = var.env
 }
 
 module "clone_service" {
@@ -35,6 +40,7 @@ module "clone_service" {
   region = var.region
   clone_service_image = local.clone_service_image
   clone_service_function_name = var.clone_service_function_name
+  env = var.env
 }
 
 module "generate_audio" {
@@ -44,6 +50,7 @@ module "generate_audio" {
   generate_audio_function_name = var.generate_audio_function_name
   sqs_queue_arn = module.gen_audio_queue.sqs_queue_arn
   sqs_queue_url = module.gen_audio_queue.sqs_queue_url
+  env = var.env
 }
 
 module "list_audio" {
@@ -51,6 +58,8 @@ module "list_audio" {
   bucket_name = var.bucket_name
   list_audio_function_name = var.list_audio_function_name
   list_audio_handler_image = local.list_audio_handler_image
+  env = var.env
+  region = var.region
 }
 
 module "api_gateway" {
@@ -61,4 +70,5 @@ module "api_gateway" {
   clone_service_function_name = var.clone_service_function_name
   list_audio_integration_uri = module.list_audio.lambda_invoke_arn
   list_service_function_name = var.list_audio_function_name
+  env = var.env
 }

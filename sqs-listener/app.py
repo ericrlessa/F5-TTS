@@ -23,7 +23,7 @@ REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT_SECONDS", 3600))
 
 # AWS clients
 sqs = boto3.client("sqs", region_name=REGION_NAME)
-s3 = boto3.client("s3", region_name=REGION_NAME)
+s3 = boto3.client("s3", region_name="us-east-1")
 
 def download_text(bucket, key):
     obj = s3.get_object(Bucket=bucket, Key=key)

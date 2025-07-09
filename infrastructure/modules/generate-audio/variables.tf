@@ -18,3 +18,8 @@ variable "sqs_queue_arn" {
 variable "sqs_queue_url" {
   type        = string
 }
+
+variable "env" {
+  description = "environment"
+  type        = string  
+}

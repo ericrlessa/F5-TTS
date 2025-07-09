@@ -1,7 +1,7 @@
 import boto3
 import os
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from mangum import Mangum
@@ -33,6 +33,26 @@ def generate_presigned_url(key):
                         ExpiresIn=3600,
                     )
 
+@app.get("/voice", response_class=JSONResponse)
+async def voice(request: Request, model: str = ""):
+    try:
+        paginator = s3.get_paginator("list_objects_v2")
+        page_iterator = paginator.paginate(Bucket=BUCKET_NAME, Prefix=model)
+
+        voices = set()
+        for page in page_iterator:
+            if "Contents" in page:
+                for obj in page["Contents"]:
+                    key = obj["Key"]
+                    parts = key.split("/")
+                    if len(parts) >= 2:
+                        voices.add(parts[1])  # get the `voice`
+        sorted_voices = sorted(voices)
+        return sorted_voices
+    except Exception as e:
+        logger.error(f"Error in voice service: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/", response_class=HTMLResponse)
 async def homepage(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -42,7 +62,6 @@ def list_audio_files(model: Optional[str] = Query(..., description="Model to sea
     try:
         if not model.endswith("/"):
             model += "/"
-        model += "gen/"
 
         logger.info(f"Listing .wav and .txt files in bucket {BUCKET_NAME} with prefix '{model}'")
 
@@ -56,11 +75,10 @@ def list_audio_files(model: Optional[str] = Query(..., description="Model to sea
             if "Contents" in page:
                 for obj in page["Contents"]:
                     key = obj["Key"]
-                    if key.endswith(".wav"):
+                    if key.endswith(".wav") and not key.endswith("ref.wav"):
                         wav_files.append(obj)
-                    elif key.endswith(".txt"):
+                    elif key.endswith(".txt") and not key.endswith("ref_text.txt"):
                         txt_files.append(obj)
-
 
         txt_files = sorted(txt_files, key=lambda x: x.get("LastModified"), reverse=True)
 

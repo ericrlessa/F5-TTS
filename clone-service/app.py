@@ -15,6 +15,7 @@ BUCKET_NAME = os.environ.get("BUCKET_NAME")
 @app.post("/clone-service")
 async def clone_voice(
     model: str = Form(...),
+    voice: str = Form(...),
     ref_text: str = Form(...),
     audio: UploadFile = File(...)
 ):
@@ -38,8 +39,8 @@ async def clone_voice(
         combined_bytes = buf.read()
 
         # Save to S3
-        s3_key_audio = f"{model}/ref.wav"
-        s3_key_ref_text = f"{model}/ref_text.txt"
+        s3_key_audio = f"{model}/{voice}/ref.wav"
+        s3_key_ref_text = f"{model}/{voice}/ref_text.txt"
 
         s3_client.put_object(
             Bucket=BUCKET_NAME,

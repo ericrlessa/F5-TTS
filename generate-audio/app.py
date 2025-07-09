@@ -24,6 +24,7 @@ s3 = boto3.client("s3", region_name="us-east-1")
 @app.post("/generate-audio")
 async def generate_audio(
     model: str = Form(...),
+    voice: str = Form(...),
     gen_text: str = Form(...)
 ):
     try:
@@ -33,7 +34,7 @@ async def generate_audio(
         # Save gen_text to S3
         text_bytes = gen_text.encode('utf-8')
         text_filename = f"{uuid.uuid4()}.txt"
-        s3_key = f"{model}/gen/{text_filename}"
+        s3_key = f"{model}/{voice}/gen/{text_filename}"
 
         s3.put_object(
             Bucket=BUCKET_NAME,
@@ -47,8 +48,8 @@ async def generate_audio(
             'bucket': BUCKET_NAME,
             's3_key_gen': s3_key,
             'model': model,
-            's3_key_ref_text': f"{model}/ref_text.txt",
-            's3_key_ref_audio': f"{model}/ref.wav",
+            's3_key_ref_text': f"{model}/{voice}/ref_text.txt",
+            's3_key_ref_audio': f"{model}/{voice}/ref.wav",
         }
 
         sqs.send_message(

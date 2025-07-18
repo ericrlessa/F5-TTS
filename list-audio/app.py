@@ -75,9 +75,12 @@ def list_audio_files(model: Optional[str] = Query(..., description="Model to sea
         for txt in txt_files:
             key = txt["Key"]
             url_txt = generate_presigned_url(key)
-            
-            matching_wavs = (wav["Key"] for wav in wav_files if wav["Key"].startswith(key))
-            key_wav = next(matching_wavs, None)
+
+            if(referenceAudio):
+                key_wav = key.replace('ref_text.txt', 'ref.wav')
+            else:
+                matching_wavs = (wav["Key"] for wav in wav_files if wav["Key"].startswith(key))
+                key_wav = next(matching_wavs, None)
 
             url_wav = generate_presigned_url(key_wav) if key_wav else None
             

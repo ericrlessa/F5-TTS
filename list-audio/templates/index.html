@@ -349,7 +349,7 @@
       spinner.classList.remove("d-none");
 
       try {
-        const res = await fetch(`/audio?model=${encodeURIComponent(model)}`);
+        const res = await fetch(`/audio?model=${encodeURIComponent(model)}&referenceAudio=false`);
         const data = await res.json();
 
         audioList.innerHTML = "";

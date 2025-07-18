@@ -33,32 +33,13 @@ def generate_presigned_url(key):
                         ExpiresIn=3600,
                     )
 
-@app.get("/voice", response_class=JSONResponse)
-async def voice(request: Request, model: str = ""):
-    try:
-        paginator = s3.get_paginator("list_objects_v2")
-        page_iterator = paginator.paginate(Bucket=BUCKET_NAME, Prefix=model)
-
-        voices = set()
-        for page in page_iterator:
-            if "Contents" in page:
-                for obj in page["Contents"]:
-                    key = obj["Key"]
-                    parts = key.split("/")
-                    if len(parts) >= 2 and parts[1]:
-                        voices.add(parts[1])  # get the `voice`
-        sorted_voices = sorted(voices)
-        return sorted_voices
-    except Exception as e:
-        logger.error(f"Error in voice service: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.get("/", response_class=HTMLResponse)
 async def homepage(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/audio", response_model=List[AudioFile])
-def list_audio_files(model: Optional[str] = Query(..., description="Model to search audios")):
+def list_audio_files(model: Optional[str] = Query(..., description="Model to search audios"),
+                         referenceAudio: bool = Query(False, description="Return reference audio?")):
     try:
         if not model.endswith("/"):
             model += "/"
@@ -75,9 +56,17 @@ def list_audio_files(model: Optional[str] = Query(..., description="Model to sea
             if "Contents" in page:
                 for obj in page["Contents"]:
                     key = obj["Key"]
-                    if key.endswith(".wav") and not key.endswith("ref.wav"):
+                    isReferenceAudio = key.endswith("ref.wav")
+                    isReferenceText = key.endswith("ref_text.txt")
+                    if key.endswith(".wav") and (
+                        (not referenceAudio and not isReferenceAudio) or
+                        (referenceAudio and isReferenceAudio)
+                    ):
                         wav_files.append(obj)
-                    elif key.endswith(".txt") and not key.endswith("ref_text.txt"):
+                    elif key.endswith(".txt") and (
+                        (not referenceAudio and not isReferenceText) or
+                        (referenceAudio and isReferenceText)
+                    ):
                         txt_files.append(obj)
 
         txt_files = sorted(txt_files, key=lambda x: x.get("LastModified"), reverse=True)
@@ -91,9 +80,14 @@ def list_audio_files(model: Optional[str] = Query(..., description="Model to sea
             key_wav = next(matching_wavs, None)
 
             url_wav = generate_presigned_url(key_wav) if key_wav else None
+            
+            voice = key
+            parts = key.split("/")
+            if len(parts) >= 2 and parts[1]:
+                voice = parts[1]
 
             result.append({
-                "key": key,
+                "key": voice,
                 "url_txt": url_txt,
                 "url_wav": url_wav
             })

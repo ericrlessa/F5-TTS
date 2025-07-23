@@ -7,16 +7,25 @@ import os
 import time
 import sys
 
+import boto3
+
+import json
+
 import flask
 import subprocess
 import uuid
 
-import zipfile
-import tempfile
 import tempfile
 
 # The flask app for serving predictions
 app = flask.Flask(__name__)
+
+s3 = boto3.client("s3", region_name="us-east-1")
+
+def download_s3_file(bucket, key, local_path):
+    with open(local_path, "wb") as f:
+        s3.download_fileobj(bucket, key, f)
+    return local_path
 
 @app.route("/ping", methods=["GET"])
 def ping():
@@ -34,84 +43,76 @@ def inference():
         output_filename = f"{uuid.uuid4().hex}.wav"
         output_path = os.path.join(temp_dir, output_filename)
 
-        if flask.request.content_type and flask.request.content_type.startswith("multipart/form-data"):
-            if 'audio' not in flask.request.files:
-                return flask.jsonify({'error': 'No audio file provided'}), 400
-            if 'text' not in flask.request.form:
-                return flask.jsonify({'error': 'No text provided'}), 400
-            if 'ref_text' not in flask.request.form:
-                return flask.jsonify({'error': 'No ref_text provided'}), 400
+        if flask.request.is_json:
+            data = flask.request.get_json()
 
-            cmd = multipart_inference(temp_dir, output_filename)        
+            required_keys = ["bucket", "s3_key_gen", "voices", "s3_key_output"]
+            if not all(k in data for k in required_keys):
+                return flask.jsonify({"error": "Missing required fields"}), 400
+
+            try:
+                
+                bucket  =  data.get("bucket")
+                gen_key =  data.get("s3_key_gen")
+                voices  =  data.get("voices")
+                s3_key_output = data.get("s3_key_output")
+                
+                cmd = json_inference(temp_dir, output_filename, bucket, gen_key, voices)
+                
+                call_process(cmd)
+
+                with open(output_path, "rb") as f:
+                    s3.put_object(
+                        Bucket=bucket,
+                        Key=s3_key_output,
+                        Body=f,
+                        ContentType="audio/wav"
+                    )
+                
+                print(f"✅ Podcast stored in {s3_key_output}")
+
+            except Exception as e:
+                print("Error:", str(e), file=sys.stderr)
+                return flask.jsonify({"error": "Inference failed"}), 500
         else:
-            if not flask.request.data:
-               return flask.jsonify({"error": "Request body is empty"}), 400
-           
-            cmd = zip_inference(temp_dir, output_filename)
+            return flask.jsonify({"error": "Content should be json"}), 400
 
-        try:
-            start_time = time.time()
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-            elapsed = time.time() - start_time
-            print(f"⏱ Inference took {elapsed:.2f} seconds", file=sys.stdout, flush=True)
-            print("Subprocess output:", result.stdout, flush=True)
-        except subprocess.CalledProcessError as e:
-            print("Error:", e.stderr)
-            return flask.jsonify({"error": "Inference failed"}), 500
+        return flask.jsonify({"status": "ok"}), 200
 
-        return flask.send_file(output_path, mimetype='audio/wav', as_attachment=True, download_name='output.wav')
+def call_process(cmd):
+    try:
+        start_time = time.time()
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        elapsed = time.time() - start_time
+        print(f"⏱ Inference took {elapsed:.2f} seconds", file=sys.stdout, flush=True)
+        print("Subprocess output:", result.stdout, flush=True)
+    except subprocess.CalledProcessError as e:
+        raise e
 
+def json_inference(temp_dir, output_filename, bucket, gen_key, voices):
+    config_file = create_toml_file(temp_dir, output_filename, bucket, gen_key, voices)
+    print(f"Config toml file: \n{config_file}")
+    config_file_path = os.path.join(temp_dir, "config_file.toml")
+    with open(config_file_path, "w") as f:
+        f.write(config_file)
 
-def multipart_inference(dir, output_filename):
-    audio_file = flask.request.files['audio']
-    input_text = flask.request.form['text']
-    input_ref_text = flask.request.form['ref_text']
+    return ["f5-tts_infer-cli", "--config", config_file_path]
 
-    input_path = os.path.join(dir, audio_file.filename)
-    audio_file.save(input_path)
+def create_toml_file(temp_dir, output_filename, bucket, gen_key, voices):
+    input_path = os.path.join(temp_dir, "gen_file.txt")
+    gen_key_local_path = download_s3_file(bucket, gen_key, input_path)
 
-    return [
-        "f5-tts_infer-cli", "--model", "F5TTS_v1_Base",
-        "--ref_audio", input_path,
-        "--ref_text", input_ref_text,
-        "--gen_text", input_text,
-        "--output_dir", dir,
-        "--output_file", output_filename,
-    ]
+    config_file = 'model = "F5TTS_v1_Base"\n'
+    config_file += f'gen_file = "{gen_key_local_path}"\n'
+    config_file += 'remove_silence = true\n'
+    config_file += f'output_dir = "{temp_dir}"\n'
+    config_file += f'output_file = "{output_filename}"\n'
 
-def zip_inference(dir, output_filename):
+    for voice in voices:
+        config_file += f"[voices.{voice['name']}]\n"
+        ref_audio_path = download_s3_file(bucket, voice["s3_key_ref_audio"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.wav"))
+        config_file += f'ref_audio = "{ref_audio_path}"\n'
+        ref_text_path = download_s3_file(bucket, voice["s3_key_ref_text"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.txt"))
+        config_file += f'ref_text = "{ref_text_path}"\n'
 
-    zip_path = os.path.join(dir, "input.zip")
-    with open(zip_path, "wb") as f:
-        f.write(flask.request.data)
-
-    ref_wav, ref_txt, gen_txt = unzip_and_get_files(zip_path, extract_to=dir)
-
-    with open(ref_txt, "r", encoding="utf-8") as f:
-        ref_text_data = f.read()
-
-    return [
-        "f5-tts_infer-cli", "--model", "F5TTS_v1_Base",
-        "--ref_audio", ref_wav,
-        "--ref_text", ref_text_data,
-        "--gen_file", gen_txt,
-        "--output_dir", dir,
-        "--output_file", output_filename
-    ]
-
-def unzip_and_get_files(zip_path, extract_to="."):
-    if not zipfile.is_zipfile(zip_path):
-        raise ValueError(f"{zip_path} is not a valid zip file.")
-
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(extract_to)
-
-    ref_wav = os.path.join(extract_to, "ref.wav")
-    ref_txt = os.path.join(extract_to, "ref.txt")
-    gen_txt = os.path.join(extract_to, "gen.txt")
-
-    for f in [ref_wav, ref_txt, gen_txt]:
-        if not os.path.exists(f):
-            raise FileNotFoundError(f"Missing expected file: {f}")
-
-    return ref_wav, ref_txt, gen_txt
+    return config_file

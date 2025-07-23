@@ -17,4 +17,3 @@ ref_text = ""
 [voices.country]
 ref_audio = "infer/examples/multi/country.flac"
 ref_text = ""
-

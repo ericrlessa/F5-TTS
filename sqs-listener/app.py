@@ -6,7 +6,6 @@ import os
 from io import BytesIO
 import traceback
 
-
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -23,52 +22,17 @@ REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT_SECONDS", 3600))
 
 # AWS clients
 sqs = boto3.client("sqs", region_name=REGION_NAME)
-s3 = boto3.client("s3", region_name="us-east-1")
-
-def download_text(bucket, key):
-    obj = s3.get_object(Bucket=bucket, Key=key)
-    return obj["Body"].read().decode("utf-8")
-
-def download_binary(bucket, key):
-    obj = s3.get_object(Bucket=bucket, Key=key)
-    return obj["Body"].read()
 
 def process_message(message):
     try:
         body = json.loads(message["Body"])
-        bucket = body.get("bucket")
-        ref_text_key = body.get("s3_key_ref_text")
-        ref_audio_key = body.get("s3_key_ref_audio")
-        gen_key = body.get("s3_key_gen")
-        
-        ref_text = download_text(bucket, ref_text_key)
-        ref_audio = download_binary(bucket, ref_audio_key)
-        gen_text = download_text(bucket, gen_key)
 
-        # Prepare multipart/form-data payload
-        files = {
-            "audio": ("ref.wav", BytesIO(ref_audio), "audio/wav"),
-        }
-        data = {
-            "text": gen_text,
-            "ref_text": ref_text
-        }
-
-        logger.info(f"📤 Sending multipart request to {ENDPOINT_URL}")
-        response = requests.post(ENDPOINT_URL, data=data, files=files, timeout=REQUEST_TIMEOUT)
+        logger.info(f"📤 Sending JSON request to {ENDPOINT_URL}")
+        response = requests.post(ENDPOINT_URL, json=body, timeout=REQUEST_TIMEOUT)
         logger.info(f"✅ Response status: {response.status_code}")
 
         # Raise if failed
         response.raise_for_status()
-
-        s3.put_object(
-            Bucket=bucket,
-            Key=f"{gen_key}.wav",
-            Body=response.content,
-            ContentType="audio/wav"
-        )
-
-        logger.info(f"✅ Uploaded to s3://{bucket}/{gen_key}.wav")
 
         return True
 

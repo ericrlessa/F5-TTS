@@ -86,8 +86,8 @@ def list_audio_files(model: Optional[str] = Query(..., description="Model to sea
             
             voice = key
             parts = key.split("/")
-            if len(parts) >= 2 and parts[1]:
-                voice = parts[1]
+            if len(parts) >= 3 and parts[2]:
+                voice = parts[2]
 
             result.append({
                 "key": voice,

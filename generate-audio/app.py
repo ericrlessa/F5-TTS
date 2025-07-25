@@ -38,43 +38,31 @@ async def generate_audio_multiple_voices(
     user: str = Form(...),
     podcast: str = Form(...),
     episode: str = Form(...),
-    gen_text: str = Form(...)
+    gen_text: str = Form(...),
+    models: str = Form(...)
 ):
     try:
-        # Extract all names in brackets at the start of a line, e.g. [John], [Maria]
-        name_pattern = r"^\[(.+?)\]"  # match [Name] at beginning of line
-        names = re.findall(name_pattern, gen_text, flags=re.MULTILINE)
 
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_names = [n for n in names if not (n in seen or seen.add(n))]
+        models_host_guests = json.loads(models)
 
-        logger.info(f"🎙️ Voices found: {unique_names}")
+        logger.info(f"🎙️ Voices found: {models_host_guests}")
 
         voices = []
-        for voice_name in unique_names:
-            pre_defined = file_exists(BUCKET_NAME, f"pre-defined/{voice_name}/ref.wav")
-            if not pre_defined and not file_exists(BUCKET_NAME, f"{user}/voices/{voice_name}/ref.wav"):
-                raise HTTPException(status_code=501, detail=f"Voice not found: {voice_name}")
-
-            if pre_defined:
-                s3_key_ref_text =  f"pre-defined/{voice_name}/ref_text.txt"
-                s3_key_ref_audio = f"pre-defined/{voice_name}/ref.wav"
-            else:
-                s3_key_ref_text =  f"{user}/voices/{voice_name}/ref_text.txt"
-                s3_key_ref_audio = f"{user}/voices/{voice_name}/ref.wav"
+        for model in models_host_guests:
+            s3_key_ref_text =  f"{model['s3_path']}/ref_text.txt"
+            s3_key_ref_audio = f"{model['s3_path']}/ref.wav"
 
             voices.append({
-                "name": voice_name,
+                "name": model['model_name'],
                 "s3_key_ref_text": s3_key_ref_text,
                 "s3_key_ref_audio": s3_key_ref_audio
             })
 
         text_bytes = gen_text.encode("utf-8")
-        filename = f"{uuid.uuid4()}"
-        s3_key = f"{user}/podcasts/{podcast}/{episode}/{filename}"
-        s3_key_gen_txt = s3_key + ".txt"
-        s3_key_output_wav = s3_key + ".wav"
+        filename = str(uuid.uuid4())
+        s3_key_base = f"{user}/podcasts/{podcast}/{episode}/{filename}"
+        s3_key_gen_txt = f"{s3_key_base}.txt"
+        s3_key_output_wav = f"{s3_key_base}.wav"
 
         s3.put_object(
             Bucket=BUCKET_NAME,

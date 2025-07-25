@@ -39,8 +39,8 @@ async def clone_voice(
         combined_bytes = buf.read()
 
         # Save to S3
-        s3_key_audio = f"{model}/{voice}/ref.wav"
-        s3_key_ref_text = f"{model}/{voice}/ref_text.txt"
+        s3_key_audio = f"{model}/voices/{voice}/ref.wav"
+        s3_key_ref_text = f"{model}/voices/{voice}/ref_text.txt"
 
         s3_client.put_object(
             Bucket=BUCKET_NAME,

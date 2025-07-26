@@ -106,7 +106,7 @@ def create_toml_file(temp_dir, output_filename, bucket, gen_key, voices):
 
     config_file = 'model = "F5TTS_v1_Base"\n'
     config_file += f'gen_file = "{gen_key_local_path}"\n'
-    config_file += 'remove_silence = true\n'
+    config_file += 'remove_silence = false\n'
     config_file += f'output_dir = "{temp_dir}"\n'
     config_file += f'output_file = "{output_filename}"\n'
 
@@ -115,6 +115,7 @@ def create_toml_file(temp_dir, output_filename, bucket, gen_key, voices):
         ref_audio_path = download_s3_file(bucket, voice["s3_key_ref_audio"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.wav"))
         config_file += f'ref_audio = "{ref_audio_path}"\n'
         ref_text_path = download_s3_file(bucket, voice["s3_key_ref_text"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.txt"))
-        config_file += f'ref_text = "{ref_text_path}"\n'
+#        config_file += f'ref_text = "{ref_text_path}"\n'
+        config_file += f'ref_text = ""\n'
 
     return config_file

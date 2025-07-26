@@ -3,13 +3,14 @@
 
 from __future__ import print_function
 
+import uuid
+import re
+
 import os
 import time
 import sys
 
 import boto3
-
-import json
 
 import flask
 import subprocess
@@ -100,6 +101,28 @@ def json_inference(temp_dir, output_filename, bucket, gen_key, voices):
 
     return ["f5-tts_infer-cli", "--config", config_file_path]
 
+def map_voice_names_to_uuid(voices):
+    name_to_uuid = {voice["name"]: str(uuid.uuid4()) for voice in voices}
+
+    return name_to_uuid
+
+def replace_voice_names_with_uuid(name_to_uuid, content):
+    result = ""
+    for name, uid in name_to_uuid.items():
+        pattern = re.escape(f"[{name}]")
+        result = re.sub(pattern, f"[{uid}]", content)
+
+    return result
+
+def replace_voice_names_with_uuid_in_file(name_to_uuid, gen_key_local_path):
+    with open(gen_key_local_path, "r") as f:
+        content = f.read()
+    
+    result = replace_voice_names_with_uuid(name_to_uuid, content)
+
+    with open(gen_key_local_path, "w") as f:
+        f.write(result)
+
 def create_toml_file(temp_dir, output_filename, bucket, gen_key, voices):
     input_path = os.path.join(temp_dir, "gen_file.txt")
     gen_key_local_path = download_s3_file(bucket, gen_key, input_path)
@@ -111,11 +134,15 @@ def create_toml_file(temp_dir, output_filename, bucket, gen_key, voices):
     config_file += f'output_file = "{output_filename}"\n'
 
     for voice in voices:
-        config_file += f'[voices."{voice["name"]}"]\n'
+        config_file += f'[voices.{voice["name"]}]\n'
         ref_audio_path = download_s3_file(bucket, voice["s3_key_ref_audio"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.wav"))
         config_file += f'ref_audio = "{ref_audio_path}"\n'
         ref_text_path = download_s3_file(bucket, voice["s3_key_ref_text"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.txt"))
 #        config_file += f'ref_text = "{ref_text_path}"\n'
         config_file += f'ref_text = ""\n'
+
+    name_to_uuid = map_voice_names_to_uuid(voices)
+    config_file = replace_voice_names_with_uuid(name_to_uuid, config_file)
+    replace_voice_names_with_uuid_in_file(name_to_uuid, gen_key_local_path)
 
     return config_file

@@ -14,6 +14,7 @@ import json
 import flask
 import subprocess
 import uuid
+import traceback
 
 import tempfile
 
@@ -72,6 +73,7 @@ def inference():
                 print(f"✅ Podcast stored in {s3_key_output}")
 
             except Exception as e:
+                traceback.print_exc()
                 print("Error:", str(e), file=sys.stderr)
                 return flask.jsonify({"error": "Inference failed"}), 500
         else:

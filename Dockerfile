@@ -14,6 +14,8 @@ RUN set -x \
     && apt-get clean
     
 COPY ./ /workspace/F5-TTS
+
+RUN chmod +x /workspace/F5-TTS/server/serve
     
 WORKDIR /workspace/F5-TTS
 

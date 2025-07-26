@@ -111,7 +111,7 @@ def create_toml_file(temp_dir, output_filename, bucket, gen_key, voices):
     config_file += f'output_file = "{output_filename}"\n'
 
     for voice in voices:
-        config_file += f"[voices.{voice['name']}]\n"
+        config_file += f'[voices."{voice["name"]}"]\n'
         ref_audio_path = download_s3_file(bucket, voice["s3_key_ref_audio"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.wav"))
         config_file += f'ref_audio = "{ref_audio_path}"\n'
         ref_text_path = download_s3_file(bucket, voice["s3_key_ref_text"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.txt"))

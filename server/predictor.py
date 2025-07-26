@@ -93,7 +93,7 @@ def call_process(cmd):
 
 def json_inference(temp_dir, output_filename, bucket, gen_key, voices):
     config_file = create_toml_file(temp_dir, output_filename, bucket, gen_key, voices)
-    print(f"Config toml file: \n{config_file}")
+    print(f"Config toml file: \n{config_file}", flush=True)
     config_file_path = os.path.join(temp_dir, "config_file.toml")
     with open(config_file_path, "w") as f:
         f.write(config_file)

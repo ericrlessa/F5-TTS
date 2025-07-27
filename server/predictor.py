@@ -142,6 +142,7 @@ def create_toml_file(temp_dir, output_filename, bucket, gen_key, voices):
         config_file += f'ref_text = ""\n'
 
     name_to_uuid = map_voice_names_to_uuid(voices)
+    print(f"name_to_uuid: {name_to_uuid}", file=sys.stdout, flush=True)
     config_file = replace_voice_names_with_uuid(name_to_uuid, config_file)
     replace_voice_names_with_uuid_in_file(name_to_uuid, gen_key_local_path)
 

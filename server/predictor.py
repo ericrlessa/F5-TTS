@@ -109,8 +109,7 @@ def map_voice_names_to_uuid(voices):
 def replace_voice_names_with_uuid(name_to_uuid, content):
     result = content
     for name, uid in name_to_uuid.items():
-        # Match [name] or [voices.name]
-        pattern = re.compile(rf"\[(voices\.)?{re.escape(name)}\]")
+        pattern = re.compile(re.escape(f"[{name}]"))
         result = re.sub(pattern, f"[{uid}]", result)
 
     return result
@@ -121,10 +120,13 @@ def replace_voice_names_with_uuid_in_file(name_to_uuid, gen_key_local_path):
     
     result = replace_voice_names_with_uuid(name_to_uuid, content)
 
+    print(f" replace_voice_names_with_uuid: \n{result}", file=sys.stdout, flush=True)
+
     with open(gen_key_local_path, "w") as f:
         f.write(result)
 
 def create_toml_file(temp_dir, output_filename, bucket, gen_key, voices):
+    name_to_uuid = map_voice_names_to_uuid(voices)
     input_path = os.path.join(temp_dir, "gen_file.txt")
     gen_key_local_path = download_s3_file(bucket, gen_key, input_path)
 
@@ -135,16 +137,15 @@ def create_toml_file(temp_dir, output_filename, bucket, gen_key, voices):
     config_file += f'output_file = "{output_filename}"\n'
 
     for voice in voices:
-        config_file += f'[voices.{voice["name"]}]\n'
+        config_file += f'[voices.{name_to_uuid[voice["name"]]}]\n'
         ref_audio_path = download_s3_file(bucket, voice["s3_key_ref_audio"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.wav"))
         config_file += f'ref_audio = "{ref_audio_path}"\n'
         ref_text_path = download_s3_file(bucket, voice["s3_key_ref_text"], os.path.join(temp_dir, f"{uuid.uuid4().hex}.txt"))
 #        config_file += f'ref_text = "{ref_text_path}"\n'
         config_file += f'ref_text = ""\n'
 
-    name_to_uuid = map_voice_names_to_uuid(voices)
+    
     print(f"name_to_uuid: {name_to_uuid}", file=sys.stdout, flush=True)
-    config_file = replace_voice_names_with_uuid(name_to_uuid, config_file)
     replace_voice_names_with_uuid_in_file(name_to_uuid, gen_key_local_path)
 
     return config_file

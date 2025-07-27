@@ -102,9 +102,8 @@ def json_inference(temp_dir, output_filename, bucket, gen_key, voices):
     return ["f5-tts_infer-cli", "--config", config_file_path]
 
 def map_voice_names_to_uuid(voices):
-    name_to_uuid = {voice["name"]: str(uuid.uuid4()) for voice in voices}
-
-    return name_to_uuid
+    name_to_id = {voice["name"]: f"voice{i+1}" for i, voice in enumerate(voices)}
+    return name_to_id
 
 def replace_voice_names_with_uuid(name_to_uuid, content):
     result = content

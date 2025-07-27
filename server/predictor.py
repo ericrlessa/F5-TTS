@@ -109,7 +109,8 @@ def map_voice_names_to_uuid(voices):
 def replace_voice_names_with_uuid(name_to_uuid, content):
     result = content
     for name, uid in name_to_uuid.items():
-        pattern = re.escape(f"[{name}]")
+        # Match [name] or [voices.name]
+        pattern = re.compile(rf"\[(voices\.)?{re.escape(name)}\]")
         result = re.sub(pattern, f"[{uid}]", result)
 
     return result

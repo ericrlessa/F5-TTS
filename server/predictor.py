@@ -90,7 +90,12 @@ def call_process(cmd):
         print(f"⏱ Inference took {elapsed:.2f} seconds", file=sys.stdout, flush=True)
         print("Subprocess output:", result.stdout, flush=True)
     except subprocess.CalledProcessError as e:
-        raise e
+        print("❌ Subprocess failed!", file=sys.stderr, flush=True)
+        print("Command:", e.cmd, file=sys.stderr, flush=True)
+        print("Return code:", e.returncode, file=sys.stderr, flush=True)
+        print("Error output:", e.stderr, file=sys.stderr, flush=True)
+        traceback.print_exc(file=sys.stderr)
+        raise
 
 def json_inference(temp_dir, output_filename, bucket, gen_key, voices):
     config_file = create_toml_file(temp_dir, output_filename, bucket, gen_key, voices)

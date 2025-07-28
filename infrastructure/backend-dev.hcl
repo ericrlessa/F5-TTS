@@ -1,3 +1,3 @@
-bucket         = "voice-clone-podcast-infra"
+bucket         = "geniuspod-terraform"
 key            = "env/dev/terraform.tfstate"
-region         = "us-east-1"
+region         = "ca-central-1"

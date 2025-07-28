@@ -16,12 +16,12 @@ handler = Mangum(app)
 logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
 
-REGION_NAME = os.getenv("AWS_REGION", "us-east-1")
+REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
 QUEUE_URL = os.environ.get("SQS_QUEUE_URL")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
 sqs = boto3.client("sqs", region_name=REGION_NAME)
-s3 = boto3.client("s3", region_name="us-east-1")
+s3 = boto3.client("s3", region_name="ca-central-1")
 
 def file_exists(bucket_name: str, file_key: str) -> bool:
     try:

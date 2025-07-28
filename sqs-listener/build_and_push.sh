@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 region=$1
-region=${region:-us-east-1}
+region=${region:-ca-central-1}
 
 image=${image:-sqs-listener}
 

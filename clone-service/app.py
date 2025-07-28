@@ -9,7 +9,7 @@ import io
 app = FastAPI()
 handler = Mangum(app)
 
-s3_client = boto3.client('s3', 'us-east-1')
+s3_client = boto3.client('s3', 'ca-central-1')
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
 @app.post("/clone-service")

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # 🔧 Config
 QUEUE_URL = os.environ["SQS_QUEUE_URL"]
 ENDPOINT_URL = os.getenv("ENDPOINT_URL", "http://localhost:8080/invocations")
-REGION_NAME = os.getenv("AWS_REGION", "us-east-1")
+REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
 WAIT_TIME_SECONDS = int(os.getenv("WAIT_TIME_SECONDS", 10))
 MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 5))
 VISIBILITY_TIMEOUT = int(os.getenv("VISIBILITY_TIMEOUT", 30))

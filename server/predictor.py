@@ -22,7 +22,7 @@ import tempfile
 # The flask app for serving predictions
 app = flask.Flask(__name__)
 
-s3 = boto3.client("s3", region_name="us-east-1")
+s3 = boto3.client("s3", region_name="ca-central-1")
 
 def download_s3_file(bucket, key, local_path):
     with open(local_path, "wb") as f:

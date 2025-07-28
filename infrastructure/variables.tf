@@ -1,7 +1,7 @@
 variable "region" {
   description = "AWS region to deploy resources"
   type        = string
-  default     = "us-east-1"
+  default     = "ca-central-1"
 }
 
 variable "env" {
@@ -25,7 +25,7 @@ locals {
 variable "bucket_name" {
   description = "S3 bucket name used by clone-service"
   type        = string
-  default     = "voice-clone-podcast"
+  default     = "geniuspod-podcast"
 }
 
 variable "sqs_queue_name" { 

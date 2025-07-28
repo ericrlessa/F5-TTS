@@ -93,6 +93,16 @@ resource "aws_launch_template" "ecs" {
     name = aws_iam_instance_profile.ecs_profile.name
   }
 
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      volume_size           = 100  # <- Increase this to the desired size
+      volume_type           = "gp3"
+      delete_on_termination = true
+    }
+  }
+
   user_data = base64encode(<<EOF
 #!/bin/bash
 echo ECS_CLUSTER=${aws_ecs_cluster.cluster.name} >> /etc/ecs/ecs.config

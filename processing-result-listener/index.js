@@ -17,6 +17,9 @@ export const handler = async (event) => {
       const parts = s3_key_output.split("/");
       const episode_id = parts[parts.length - 2];
 
+      processing_time = parseInt(processing_time, 10);
+      duration = parseInt(duration, 10);
+
       const { error } = await supabase
         .from('episode_audio')
         .insert([

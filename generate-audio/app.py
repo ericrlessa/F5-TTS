@@ -17,7 +17,7 @@ logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
 
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
-QUEUE_URL = os.environ.get("SQS_QUEUE_URL")
+QUEUE_URL = os.environ.get("SQS_REC_QUEUE_URL")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
 sqs = boto3.client("sqs", region_name=REGION_NAME)

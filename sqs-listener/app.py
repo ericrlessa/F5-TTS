@@ -68,9 +68,11 @@ def poll_queue():
             result = process_message(body)
             if result:
                 merge_rec_result = body | result
+                logger.info(f"📤 Sending JSON result to the queue: {merge_rec_result}")
                 send_result_message(merge_rec_result)
+                logger.info(f"✅ JSON result written to the queue")
                 sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt_handle)
-                logger.info("🗑️  Deleted message")
+                logger.info("🗑️  Deleted message received")
             else:
                 logger.info("⚠️  Message left for retry")
 

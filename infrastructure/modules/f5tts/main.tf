@@ -27,6 +27,14 @@ resource "aws_iam_policy" "ecs_sqs_s3_policy" {
       },
       {
         Effect   = "Allow",
+        Action = [
+          "sqs:SendMessage",
+          "sqs:GetQueueAttributes"
+        ],
+        Resource = var.sqs_result_queue_arn
+      },
+      {
+        Effect   = "Allow",
         Action   = [
           "s3:GetObject",
           "s3:GetObjectVersion",
@@ -262,8 +270,12 @@ resource "aws_ecs_task_definition" "task" {
       dependsOn = [{ containerName = "f5tts", condition = "HEALTHY" }]
       environment = [
         {
-          name  = "SQS_QUEUE_URL"
+          name  = "SQS_REC_QUEUE_URL"
           value = var.sqs_queue_url
+        },
+        {
+          name  = "SQS_SND_QUEUE_URL"
+          value = var.sqs_result_queue_url
         },
         {
           name  = "ENDPOINT_URL"

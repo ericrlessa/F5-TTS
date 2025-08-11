@@ -17,6 +17,8 @@ import subprocess
 import uuid
 import traceback
 
+import wave
+
 import tempfile
 
 # The flask app for serving predictions
@@ -37,6 +39,14 @@ def ping():
 
  #   status = 200 if health else 404
     return flask.Response(response="\n", status=200, mimetype="application/json")
+
+def get_wav_duration(file_path: str) -> float:
+    """Return duration of a WAV file in seconds."""
+    with wave.open(file_path, 'rb') as wav_file:
+        frames = wav_file.getnframes()
+        rate = wav_file.getframerate()
+        duration = frames / float(rate)
+    return duration
 
 @app.route("/invocations", methods=["POST"])
 def inference():
@@ -61,7 +71,7 @@ def inference():
                 
                 cmd = json_inference(temp_dir, output_filename, bucket, gen_key, voices)
                 
-                call_process(cmd)
+                processing_time = call_process(cmd)
 
                 with open(output_path, "rb") as f:
                     s3.put_object(
@@ -73,14 +83,15 @@ def inference():
                 
                 print(f"✅ Podcast stored in {s3_key_output}")
 
+                return flask.jsonify({"processing_time": processing_time,
+                                      "duration": get_wav_duration(output_path)}), 200
+
             except Exception as e:
                 traceback.print_exc()
                 print("Error:", str(e), file=sys.stderr)
                 return flask.jsonify({"error": "Inference failed"}), 500
         else:
             return flask.jsonify({"error": "Content should be json"}), 400
-
-        return flask.jsonify({"status": "ok"}), 200
 
 def call_process(cmd):
     try:
@@ -89,6 +100,7 @@ def call_process(cmd):
         elapsed = time.time() - start_time
         print(f"⏱ Inference took {elapsed:.2f} seconds", file=sys.stdout, flush=True)
         print("Subprocess output:", result.stdout, flush=True)
+        return elapsed
     except subprocess.CalledProcessError as e:
         print("❌ Subprocess failed!", file=sys.stderr, flush=True)
         print("Command:", e.cmd, file=sys.stderr, flush=True)

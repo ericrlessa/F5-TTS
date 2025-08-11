@@ -21,3 +21,18 @@ resource "aws_sqs_queue" "gen_audio_queue" {
     maxReceiveCount     = 3  # After 3 failed receives, message goes to DLQ
   })
 }
+
+# Dead Letter Queue for the processing audio generation result
+resource "aws_sqs_queue" "gen_audio_result_dlq" {
+  name = "${var.sqs_queue_name}-result-dlq"
+}
+
+# Main Queue with DLQ for the processing audio generation result
+resource "aws_sqs_queue" "gen_audio_result_queue" {
+  name = "${var.sqs_queue_name}-result"
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.gen_audio_result_dlq.arn
+    maxReceiveCount     = 3  # After 3 failed receives, message goes to DLQ
+  })
+}

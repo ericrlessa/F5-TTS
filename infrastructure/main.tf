@@ -68,6 +68,16 @@ module "list_audio" {
   region = var.region
 }
 
+module "processing_result_audio" {
+  source = "./modules/processing-result-listener"
+  processing_result_function_name = var.processing_result_function_name
+  processing_result_handler_image = locals.processing_result_handler_image
+  supabase_url = var.supabase_url
+  supabase_service_key = var.supabase_service_key
+  sqs_queue_arn = module.gen_audio_queue.sqs_queue_result_arn
+  env = var.env
+}
+
 module "api_gateway" {
   source = "./modules/api-gateway"
   clone_service_integration_uri = module.clone_service.lambda_invoke_arn

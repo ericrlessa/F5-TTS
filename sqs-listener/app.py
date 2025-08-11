@@ -12,7 +12,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 🔧 Config
-QUEUE_URL = os.environ["SQS_QUEUE_URL"]
+QUEUE_URL_RESULT = os.environ["SQS_SND_QUEUE_URL"]
+QUEUE_URL = os.environ["SQS_REC_QUEUE_URL"]
 ENDPOINT_URL = os.getenv("ENDPOINT_URL", "http://localhost:8080/invocations")
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
 WAIT_TIME_SECONDS = int(os.getenv("WAIT_TIME_SECONDS", 10))
@@ -23,23 +24,29 @@ REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT_SECONDS", 3600))
 # AWS clients
 sqs = boto3.client("sqs", region_name=REGION_NAME)
 
+def send_result_message(message):
+    sqs.send_message(
+            QueueUrl=QUEUE_URL_RESULT,
+            MessageBody=json.dumps(message)
+    )
+
 def process_message(message):
     try:
-        body = json.loads(message["Body"])
-
         logger.info(f"📤 Sending JSON request to {ENDPOINT_URL}")
-        response = requests.post(ENDPOINT_URL, json=body, timeout=REQUEST_TIMEOUT)
+        response = requests.post(ENDPOINT_URL, json=message, timeout=REQUEST_TIMEOUT)
         logger.info(f"✅ Response status: {response.status_code}")
 
         # Raise if failed
         response.raise_for_status()
 
-        return True
+        result = response.json()
+
+        return result
 
     except Exception as e:
         logger.error(f"❌ Error processing message: {e}")
         logger.debug(traceback.format_exc())
-        return False
+        return None
 
 def poll_queue():
     logger.info("🚀 Listening for messages...")
@@ -57,8 +64,11 @@ def poll_queue():
 
         for msg in messages:
             receipt_handle = msg["ReceiptHandle"]
-            success = process_message(msg)
-            if success:
+            body = json.loads(msg["Body"])
+            result = process_message(body)
+            if result:
+                merge_rec_result = body | result
+                send_result_message(merge_rec_result)
                 sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt_handle)
                 logger.info("🗑️  Deleted message")
             else:

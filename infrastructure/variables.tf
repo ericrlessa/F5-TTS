@@ -20,6 +20,7 @@ locals {
   generate_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/gen-audio-handler:latest"
   clone_service_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/lambda-voice-clone:latest"
   list_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/list-audio-handler:latest"
+  processing_result_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/processing-result-listener:latest"
 }
 
 variable "bucket_name" {
@@ -30,7 +31,7 @@ variable "bucket_name" {
 
 variable "sqs_queue_name" { 
   type=string 
-  default="voice-clone-gen-events" 
+  default="generate-audio-events"
 }
 
 variable "ecs_instance_type" { 
@@ -61,4 +62,17 @@ variable "clone_service_function_name" {
 variable "list_audio_function_name" {
   type    = string
   default = "list-audio"
+}
+
+variable "processing_result_function_name" {
+  type    = string
+  default = "processing-result-audio"
+}
+
+variable "supabase_url" {
+  type    = string
+}
+
+variable "supabase_service_key" {
+  type    = string
 }

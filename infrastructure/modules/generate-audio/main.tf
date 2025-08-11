@@ -69,7 +69,7 @@ resource "aws_lambda_function" "gen_audio_handler" {
   environment {
     variables = {
       BUCKET_NAME    = var.bucket_name
-      SQS_QUEUE_URL  = var.sqs_queue_url
+      SQS_REC_QUEUE_URL  = var.sqs_queue_url
     }
   }
 }

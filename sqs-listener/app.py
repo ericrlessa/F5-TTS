@@ -24,6 +24,23 @@ REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT_SECONDS", 3600))
 # AWS clients
 sqs = boto3.client("sqs", region_name=REGION_NAME)
 
+def get_ec2_instance_id():
+    try:
+        # Get IMDSv2 token (required in newer AWS regions)
+        token_url = "http://169.254.169.254/latest/api/token"
+        headers = {'X-aws-ec2-metadata-token-ttl-seconds': '21600'}
+        token = requests.put(token_url, headers=headers, timeout=2).text
+
+        # Fetch instance ID
+        metadata_url = "http://169.254.169.254/latest/meta-data/instance-id"
+        headers = {'X-aws-ec2-metadata-token': token}
+        instance_id = requests.get(metadata_url, headers=headers, timeout=2).text
+        
+        return instance_id
+    except Exception as e:
+        print(f"Failed to get EC2 instance ID: {e}")
+        return None
+
 def send_result_message(message):
     sqs.send_message(
             QueueUrl=QUEUE_URL_RESULT,
@@ -67,7 +84,7 @@ def poll_queue():
             body = json.loads(msg["Body"])
             result = process_message(body)
             if result:
-                merge_rec_result = body | result
+                merge_rec_result = body | result | {"instance_id": get_ec2_instance_id()}
                 logger.info(f"📤 Sending JSON result to the queue: {merge_rec_result}")
                 send_result_message(merge_rec_result)
                 logger.info(f"✅ JSON result written to the queue")

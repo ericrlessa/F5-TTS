@@ -12,7 +12,7 @@ export const handler = async (event) => {
 
     for (const record of event.Records) {
       const body = JSON.parse(record.body);
-      const { processing_time, s3_key_output, duration } = body;
+      const { processing_time, s3_key_output, duration, instance_id } = body;
 
       const parts = s3_key_output.split("/");
       const episode_id = parts[parts.length - 2];
@@ -24,7 +24,8 @@ export const handler = async (event) => {
             episode_id,
             s3_path: s3_key_output,
             duration: parseInt(duration, 10),
-            processing_time: parseInt(processing_time, 10)
+            processing_time: parseInt(processing_time, 10),
+            instance_id
           }
         ]);
 

@@ -1,75 +1,146 @@
-resource "aws_apigatewayv2_api" "api" {
-  name          = "voice-clone-api"
-  protocol_type = "HTTP"
+# REST API Gateway
+resource "aws_api_gateway_rest_api" "api" {
+  name        = "voice-clone-api"
+  description = "Voice Clone REST API"
 }
 
-resource "aws_apigatewayv2_integration" "generate_audio_integration" {
-  api_id           = aws_apigatewayv2_api.api.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = var.generate_audio_integration_uri
-  integration_method = "POST"
-  payload_format_version = "2.0"
+# Resources for each endpoint
+resource "aws_api_gateway_resource" "generate_audio" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "generate-audio"
 }
 
-resource "aws_apigatewayv2_integration" "clone_service_integration" {
-  api_id           = aws_apigatewayv2_api.api.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = var.clone_service_integration_uri
-  integration_method = "POST"
-  payload_format_version = "2.0"
+resource "aws_api_gateway_resource" "clone_service" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "clone-service"
 }
 
-resource "aws_apigatewayv2_integration" "list_audio_integration" {
-  api_id           = aws_apigatewayv2_api.api.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = var.list_audio_integration_uri
-  integration_method = "POST"
-  payload_format_version = "2.0"
+resource "aws_api_gateway_resource" "audio" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "audio"
 }
 
-resource "aws_apigatewayv2_route" "generate_audio_route" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "POST /generate-audio"
-  target    = "integrations/${aws_apigatewayv2_integration.generate_audio_integration.id}"
+resource "aws_api_gateway_resource" "voice" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "voice"
 }
 
-resource "aws_apigatewayv2_route" "clone_service_route" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "POST /clone-service"
-  target    = "integrations/${aws_apigatewayv2_integration.clone_service_integration.id}"
+# Methods for each endpoint
+resource "aws_api_gateway_method" "generate_audio_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.generate_audio.id
+  http_method   = "POST"
+  authorization = "NONE"
 }
 
-resource "aws_apigatewayv2_route" "list_audio_route" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "GET /audio"
-  target    = "integrations/${aws_apigatewayv2_integration.list_audio_integration.id}"
+resource "aws_api_gateway_method" "clone_service_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.clone_service.id
+  http_method   = "POST"
+  authorization = "NONE"
 }
 
-resource "aws_apigatewayv2_route" "index_route" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "GET /"
-  target    = "integrations/${aws_apigatewayv2_integration.list_audio_integration.id}"
+resource "aws_api_gateway_method" "list_audio_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.audio.id
+  http_method   = "GET"
+  authorization = "NONE"
 }
 
-resource "aws_apigatewayv2_route" "voice_route" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "GET /voice"
-  target    = "integrations/${aws_apigatewayv2_integration.list_audio_integration.id}"
+resource "aws_api_gateway_method" "index_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_rest_api.api.root_resource_id
+  http_method   = "GET"
+  authorization = "NONE"
 }
 
-
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.api.id
-  name        = "$default"
-  auto_deploy = true
+resource "aws_api_gateway_method" "voice_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.voice.id
+  http_method   = "GET"
+  authorization = "NONE"
 }
 
+# Integrations
+resource "aws_api_gateway_integration" "generate_audio_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.generate_audio.id
+  http_method             = aws_api_gateway_method.generate_audio_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.generate_audio_integration_uri
+}
+
+resource "aws_api_gateway_integration" "clone_service_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.clone_service.id
+  http_method             = aws_api_gateway_method.clone_service_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.clone_service_integration_uri
+}
+
+resource "aws_api_gateway_integration" "list_audio_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.audio.id
+  http_method             = aws_api_gateway_method.list_audio_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.list_audio_integration_uri
+}
+
+resource "aws_api_gateway_integration" "index_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_rest_api.api.root_resource_id
+  http_method             = aws_api_gateway_method.index_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.list_audio_integration_uri
+}
+
+resource "aws_api_gateway_integration" "voice_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.voice.id
+  http_method             = aws_api_gateway_method.voice_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.list_audio_integration_uri
+}
+
+# Deployment
+resource "aws_api_gateway_deployment" "deployment" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  depends_on = [
+    aws_api_gateway_integration.generate_audio_integration,
+    aws_api_gateway_integration.clone_service_integration,
+    aws_api_gateway_integration.list_audio_integration,
+    aws_api_gateway_integration.index_integration,
+    aws_api_gateway_integration.voice_integration
+  ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Stage
+resource "aws_api_gateway_stage" "prod" {
+  deployment_id = aws_api_gateway_deployment.deployment.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  stage_name    = "prod"
+}
+
+# Lambda permissions (updated for REST API)
 resource "aws_lambda_permission" "allow_apigw_generate_audio" {
   statement_id  = "AllowInvokeFromApiGWGenerateAudio"
   action        = "lambda:InvokeFunction"
   function_name = var.generate_audio_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/POST/generate-audio"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/POST/generate-audio"
 }
 
 resource "aws_lambda_permission" "allow_apigw_clone_service" {
@@ -77,13 +148,29 @@ resource "aws_lambda_permission" "allow_apigw_clone_service" {
   action        = "lambda:InvokeFunction"
   function_name = var.clone_service_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/POST/clone-service"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/POST/clone-service"
 }
 
-resource "aws_lambda_permission" "allow_apigw_index" {
-  statement_id  = "AllowInvokeFromApiGWIndexService"
+resource "aws_lambda_permission" "allow_apigw_list_audio" {
+  statement_id  = "AllowInvokeFromApiGWListAudio"
   action        = "lambda:InvokeFunction"
   function_name = var.list_service_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/GET/*"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/GET/audio"
+}
+
+resource "aws_lambda_permission" "allow_apigw_index" {
+  statement_id  = "AllowInvokeFromApiGWIndex"
+  action        = "lambda:InvokeFunction"
+  function_name = var.list_service_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/GET/"
+}
+
+resource "aws_lambda_permission" "allow_apigw_voice" {
+  statement_id  = "AllowInvokeFromApiGWVoice"
+  action        = "lambda:InvokeFunction"
+  function_name = var.list_service_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/GET/voice"
 }

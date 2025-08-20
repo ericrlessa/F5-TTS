@@ -1,24 +1,41 @@
+locals {
+  base_url = "https://${aws_api_gateway_rest_api.api.id}.execute-api.${data.aws_region.current.name}.amazonaws.com/${aws_api_gateway_stage.prod.stage_name}"
+}
+
 output "api_id" {
   description = "ID of the API Gateway"
-  value       = aws_apigatewayv2_api.api.id
+  value       = aws_api_gateway_rest_api.api.id
 }
 
 output "api_endpoint" {
   description = "Base endpoint URL for the API Gateway"
-  value       = aws_apigatewayv2_api.api.api_endpoint
+  value       = local.base_url
 }
 
 output "generate_audio_url" {
   description = "POST endpoint for generating audio"
-  value       = "${aws_apigatewayv2_api.api.api_endpoint}/generate-audio"
+  value       = "${local.base_url}/generate-audio"
 }
 
 output "clone_service_url" {
   description = "POST endpoint for clone service"
-  value       = "${aws_apigatewayv2_api.api.api_endpoint}/clone-service"
+  value       = "${local.base_url}/clone-service"
 }
 
-output "list_service_url" {
-  description = "GET endpoint for list service"
-  value       = "${aws_apigatewayv2_api.api.api_endpoint}/audio"
+output "list_audio_url" {
+  description = "GET endpoint for list audio service"
+  value       = "${local.base_url}/audio"
 }
+
+output "index_url" {
+  description = "GET endpoint for index"
+  value       = local.base_url
+}
+
+output "voice_url" {
+  description = "GET endpoint for voice"
+  value       = "${local.base_url}/voice"
+}
+
+# Add this data source to get the current region
+data "aws_region" "current" {}

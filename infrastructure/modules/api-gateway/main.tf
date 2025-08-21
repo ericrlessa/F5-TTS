@@ -29,12 +29,13 @@ resource "aws_api_gateway_resource" "voice" {
   path_part   = "voice"
 }
 
-# Methods for each endpoint
+# Methods for each endpoint - UPDATED WITH API KEY REQUIRED
 resource "aws_api_gateway_method" "generate_audio_method" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.generate_audio.id
   http_method   = "POST"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_method" "clone_service_method" {
@@ -42,6 +43,7 @@ resource "aws_api_gateway_method" "clone_service_method" {
   resource_id   = aws_api_gateway_resource.clone_service.id
   http_method   = "POST"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_method" "list_audio_method" {
@@ -49,6 +51,7 @@ resource "aws_api_gateway_method" "list_audio_method" {
   resource_id   = aws_api_gateway_resource.audio.id
   http_method   = "GET"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_method" "index_method" {
@@ -56,6 +59,7 @@ resource "aws_api_gateway_method" "index_method" {
   resource_id   = aws_api_gateway_rest_api.api.root_resource_id
   http_method   = "GET"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_method" "voice_method" {
@@ -63,6 +67,7 @@ resource "aws_api_gateway_method" "voice_method" {
   resource_id   = aws_api_gateway_resource.voice.id
   http_method   = "GET"
   authorization = "NONE"
+  api_key_required = true
 }
 
 # Integrations
@@ -127,11 +132,45 @@ resource "aws_api_gateway_deployment" "deployment" {
   }
 }
 
-# Stage
-resource "aws_api_gateway_stage" "prod" {
+# Stage - MUST BE DEFINED BEFORE USAGE PLAN
+resource "aws_api_gateway_stage" "stage_env" {
   deployment_id = aws_api_gateway_deployment.deployment.id
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  stage_name    = "prod"
+  stage_name    = var.env
+}
+
+# API Key and Usage Plan - MOVED AFTER STAGE DEFINITION
+resource "aws_api_gateway_api_key" "voice_clone_api_key" {
+  name = "voice-clone-api-key"
+  description = "API Key for Voice Clone API"
+  enabled     = true
+}
+
+resource "aws_api_gateway_usage_plan" "voice_clone_usage_plan" {
+  name        = "voice-clone-usage-plan"
+  description = "Usage plan for Voice Clone API"
+
+  api_stages {
+    api_id = aws_api_gateway_rest_api.api.id
+    stage  = aws_api_gateway_stage.stage_env.stage_name  # ✅ Now stage is defined
+  }
+
+  quota_settings {
+    limit  = 1000  # Monthly quota
+    offset = 0
+    period = "MONTH"
+  }
+
+  throttle_settings {
+    burst_limit = 10   # Maximum number of requests per second over time period
+    rate_limit  = 5    # Steady-state rate limit
+  }
+}
+
+resource "aws_api_gateway_usage_plan_key" "main" {
+  key_id        = aws_api_gateway_api_key.voice_clone_api_key.id
+  key_type      = "API_KEY"
+  usage_plan_id = aws_api_gateway_usage_plan.voice_clone_usage_plan.id
 }
 
 # Lambda permissions (updated for REST API)
@@ -140,7 +179,7 @@ resource "aws_lambda_permission" "allow_apigw_generate_audio" {
   action        = "lambda:InvokeFunction"
   function_name = var.generate_audio_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/POST/generate-audio"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/POST/generate-audio"
 }
 
 resource "aws_lambda_permission" "allow_apigw_clone_service" {
@@ -148,7 +187,7 @@ resource "aws_lambda_permission" "allow_apigw_clone_service" {
   action        = "lambda:InvokeFunction"
   function_name = var.clone_service_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/POST/clone-service"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/POST/clone-service"
 }
 
 resource "aws_lambda_permission" "allow_apigw_list_audio" {
@@ -156,7 +195,7 @@ resource "aws_lambda_permission" "allow_apigw_list_audio" {
   action        = "lambda:InvokeFunction"
   function_name = var.list_service_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/GET/audio"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/GET/audio"
 }
 
 resource "aws_lambda_permission" "allow_apigw_index" {
@@ -164,7 +203,7 @@ resource "aws_lambda_permission" "allow_apigw_index" {
   action        = "lambda:InvokeFunction"
   function_name = var.list_service_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/GET/"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/GET/"
 }
 
 resource "aws_lambda_permission" "allow_apigw_voice" {
@@ -172,5 +211,27 @@ resource "aws_lambda_permission" "allow_apigw_voice" {
   action        = "lambda:InvokeFunction"
   function_name = var.list_service_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/prod/GET/voice"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/GET/voice"
+}
+
+# Output the API key value (you'll need to retrieve this securely)
+output "api_key_value" {
+  description = "The value of the API key. Store this securely!"
+  value       = aws_api_gateway_api_key.voice_clone_api_key.value
+  sensitive   = true
+}
+
+output "api_key_id" {
+  description = "The ID of the API key"
+  value       = aws_api_gateway_api_key.voice_clone_api_key.id
+}
+
+output "usage_plan_id" {
+  description = "The ID of the usage plan"
+  value       = aws_api_gateway_usage_plan.voice_clone_usage_plan.id
+}
+
+output "api_invoke_url" {
+  description = "The base URL of the API"
+  value       = "https://${aws_api_gateway_rest_api.api.id}.execute-api.${var.region}.amazonaws.com/${aws_api_gateway_stage.stage_env.stage_name}"
 }

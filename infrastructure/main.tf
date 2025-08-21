@@ -89,4 +89,5 @@ module "api_gateway" {
   list_audio_integration_uri = module.list_audio.lambda_invoke_arn
   list_service_function_name = var.list_audio_function_name
   env = var.env
+  region = var.region
 }

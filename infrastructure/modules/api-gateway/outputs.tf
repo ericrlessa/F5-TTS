@@ -1,5 +1,5 @@
 locals {
-  base_url = "https://${aws_api_gateway_rest_api.api.id}.execute-api.${data.aws_region.current.name}.amazonaws.com/${aws_api_gateway_stage.prod.stage_name}"
+  base_url = "https://${aws_api_gateway_rest_api.api.id}.execute-api.${var.region}.amazonaws.com/${aws_api_gateway_stage.stage_env.stage_name}"
 }
 
 output "api_id" {
@@ -36,6 +36,3 @@ output "voice_url" {
   description = "GET endpoint for voice"
   value       = "${local.base_url}/voice"
 }
-
-# Add this data source to get the current region
-data "aws_region" "current" {}

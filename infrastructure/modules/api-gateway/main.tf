@@ -155,16 +155,7 @@ resource "aws_api_gateway_usage_plan" "voice_clone_usage_plan" {
     stage  = aws_api_gateway_stage.stage_env.stage_name  # ✅ Now stage is defined
   }
 
-  quota_settings {
-    limit  = 1000  # Monthly quota
-    offset = 0
-    period = "MONTH"
-  }
-
-  throttle_settings {
-    burst_limit = 10   # Maximum number of requests per second over time period
-    rate_limit  = 5    # Steady-state rate limit
-  }
+  
 }
 
 resource "aws_api_gateway_usage_plan_key" "main" {

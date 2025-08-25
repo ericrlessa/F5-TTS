@@ -91,3 +91,8 @@ module "api_gateway" {
   env = var.env
   region = var.region
 }
+
+module "sns_contact" {
+  source = "./modules/sns-contact"
+  sns_emails = var.sns_emails
+}

@@ -76,3 +76,8 @@ variable "supabase_url" {
 variable "supabase_service_key" {
   type    = string
 }
+
+variable "sns_emails" {
+  description = "List of email addresses to subscribe to the SNS topic"
+  type        = list(string)
+}

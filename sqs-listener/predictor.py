@@ -1,6 +1,3 @@
-# This is the file that implements a flask server to do inferences. It's the file that you will modify to
-# implement the scoring for your own algorithm.
-
 from __future__ import print_function
 
 import uuid
@@ -12,7 +9,6 @@ import sys
 
 import boto3
 
-import flask
 import subprocess
 import uuid
 import traceback
@@ -21,8 +17,6 @@ import wave
 
 import tempfile
 
-# The flask app for serving predictions
-app = flask.Flask(__name__)
 
 s3 = boto3.client("s3", region_name="ca-central-1")
 
@@ -30,15 +24,6 @@ def download_s3_file(bucket, key, local_path):
     with open(local_path, "wb") as f:
         s3.download_fileobj(bucket, key, f)
     return local_path
-
-@app.route("/ping", methods=["GET"])
-def ping():
-    """Determine if the container is working and healthy. In this sample container, we declare
-    it healthy if we can load the model successfully."""
-#    health = ScoringService.get_model() is not None  # You can insert a health check here
-
- #   status = 200 if health else 404
-    return flask.Response(response="\n", status=200, mimetype="application/json")
 
 def get_wav_duration(file_path: str) -> float:
     """Return duration of a WAV file in seconds."""
@@ -56,7 +41,8 @@ def inference(data):
 
         required_keys = ["bucket", "s3_key_gen", "voices", "s3_key_output"]
         if not all(k in data for k in required_keys):
-            return flask.jsonify({"error": "Missing required fields"}), 400
+            return {"error": "Missing required fields"}, 400
+
 
         try:
             bucket  =  data.get("bucket")
@@ -78,13 +64,13 @@ def inference(data):
             
             print(f"✅ Podcast stored in {s3_key_output}")
 
-            return flask.jsonify({"processing_time": processing_time,
-                                    "duration": get_wav_duration(output_path)}), 200
+            return {"processing_time": processing_time,
+                                    "duration": get_wav_duration(output_path)}, 200
 
         except Exception as e:
             traceback.print_exc()
             print("Error:", str(e), file=sys.stderr)
-            return flask.jsonify({"error": "Inference failed"}), 500
+            return {"error": "Inference failed"}, 500
 
 def call_process(cmd):
     try:

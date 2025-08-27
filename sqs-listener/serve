@@ -8,6 +8,7 @@ import os
 from io import BytesIO
 import traceback
 from predictor import inference
+import flask
 
 import logging
 
@@ -24,6 +25,19 @@ VISIBILITY_TIMEOUT = int(os.getenv("VISIBILITY_TIMEOUT", 30))
 
 # AWS clients
 sqs = boto3.client("sqs", region_name=REGION_NAME)
+
+# The flask app for serving predictions
+app = flask.Flask(__name__)
+
+@app.route("/ping", methods=["GET"])
+def ping():
+    """Determine if the container is working and healthy. In this sample container, we declare
+    it healthy if we can load the model successfully."""
+#    health = ScoringService.get_model() is not None  # You can insert a health check here
+
+ #   status = 200 if health else 404
+    return flask.Response(response="\n", status=200, mimetype="application/json")
+
 
 def get_ec2_instance_id():
     try:
@@ -97,4 +111,5 @@ def poll_queue():
         time.sleep(1)
 
 if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
     poll_queue()

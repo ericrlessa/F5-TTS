@@ -239,12 +239,16 @@ resource "aws_ecs_task_definition" "task" {
         {
           type  = "GPU"
           value = "1"
-        }
+        },
       ]
       environment = [
         {
-          name  = "MODEL_SERVER_TIMEOUT"
-          value = "7200"
+          name  = "SQS_REC_QUEUE_URL"
+          value = var.sqs_queue_url
+        },
+        {
+          name  = "SQS_SND_QUEUE_URL"
+          value = var.sqs_result_queue_url
         }
       ]
       logConfiguration = {
@@ -261,34 +265,6 @@ resource "aws_ecs_task_definition" "task" {
         timeout     = 5
         retries     = 3
         startPeriod = 10
-      }
-    },
-    {
-      name      = "sqs-listener"
-      image     = var.sqs_listener_image
-      essential = true
-      dependsOn = [{ containerName = "f5tts", condition = "HEALTHY" }]
-      environment = [
-        {
-          name  = "SQS_REC_QUEUE_URL"
-          value = var.sqs_queue_url
-        },
-        {
-          name  = "SQS_SND_QUEUE_URL"
-          value = var.sqs_result_queue_url
-        },
-        {
-          name  = "ENDPOINT_URL"
-          value = "http://localhost:8080/invocations"
-        }
-      ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = "/ecs/voice-clone"
-          awslogs-region        = var.region
-          awslogs-stream-prefix = "ecs"
-        }
       }
     }
   ])

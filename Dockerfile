@@ -15,7 +15,7 @@ RUN set -x \
     
 COPY ./ /workspace/F5-TTS
 
-RUN chmod +x /workspace/F5-TTS/server/serve
+RUN chmod +x /workspace/F5-TTS/sqs-listener/serve
     
 WORKDIR /workspace/F5-TTS
 
@@ -27,9 +27,9 @@ ENV SHELL=/bin/bash
 
 VOLUME /root/.cache/huggingface/hub/
 
-ENV PATH="/workspace/F5-TTS/server:${PATH}"
+ENV PATH="/workspace/F5-TTS/sqs-listener:${PATH}"
 
-WORKDIR /workspace/F5-TTS/server
+WORKDIR /workspace/F5-TTS/sqs-listener
 
 EXPOSE 8080
 

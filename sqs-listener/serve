@@ -67,20 +67,14 @@ def send_result_message(message):
 def process_message(message):
     try:
         logger.info(f"📤 Starting inference...")
-        response = inference(message)
-        logger.info(f"✅ Response status: {response.status_code}")
-
-        # Raise if failed
-        response.raise_for_status()
-
-        result = response.json()
+        result = inference(message)
+        logger.info(f"✅ Result: {result}")
 
         return result
-
     except Exception as e:
         logger.error(f"❌ Error processing message: {e}")
         logger.debug(traceback.format_exc())
-        return None
+        raise
 
 def poll_queue():
     logger.info("🚀 Listening for messages...")

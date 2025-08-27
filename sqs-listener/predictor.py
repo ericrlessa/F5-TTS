@@ -43,34 +43,28 @@ def inference(data):
         if not all(k in data for k in required_keys):
             return {"error": "Missing required fields"}, 400
 
+        bucket  =  data.get("bucket")
+        gen_key =  data.get("s3_key_gen")
+        voices  =  data.get("voices")
+        s3_key_output = data.get("s3_key_output")
+        
+        cmd = json_inference(temp_dir, output_filename, bucket, gen_key, voices)
+        
+        processing_time = call_process(cmd)
 
-        try:
-            bucket  =  data.get("bucket")
-            gen_key =  data.get("s3_key_gen")
-            voices  =  data.get("voices")
-            s3_key_output = data.get("s3_key_output")
-            
-            cmd = json_inference(temp_dir, output_filename, bucket, gen_key, voices)
-            
-            processing_time = call_process(cmd)
+        with open(output_path, "rb") as f:
+            s3.put_object(
+                Bucket=bucket,
+                Key=s3_key_output,
+                Body=f,
+                ContentType="audio/wav"
+            )
+        
+        print(f"✅ Podcast stored in {s3_key_output}")
 
-            with open(output_path, "rb") as f:
-                s3.put_object(
-                    Bucket=bucket,
-                    Key=s3_key_output,
-                    Body=f,
-                    ContentType="audio/wav"
-                )
-            
-            print(f"✅ Podcast stored in {s3_key_output}")
+        return {"processing_time": processing_time,
+                                "duration": get_wav_duration(output_path)}
 
-            return {"processing_time": processing_time,
-                                    "duration": get_wav_duration(output_path)}, 200
-
-        except Exception as e:
-            traceback.print_exc()
-            print("Error:", str(e), file=sys.stderr)
-            return {"error": "Inference failed"}, 500
 
 def call_process(cmd):
     try:

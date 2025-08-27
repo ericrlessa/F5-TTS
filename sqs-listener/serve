@@ -9,6 +9,8 @@ from io import BytesIO
 import traceback
 from predictor import inference
 import flask
+import threading
+
 
 import logging
 
@@ -111,5 +113,5 @@ def poll_queue():
         time.sleep(1)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()
     poll_queue()

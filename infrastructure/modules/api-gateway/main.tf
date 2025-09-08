@@ -1,7 +1,16 @@
-# REST API Gateway
+# REST API Gateway with binary media types
 resource "aws_api_gateway_rest_api" "api" {
   name        = "voice-clone-api"
   description = "Voice Clone REST API"
+  
+  # Add binary media types to handle audio files properly
+  binary_media_types = [
+    "multipart/form-data",    # For form data with file uploads
+    "audio/wav",              # Specifically for WAV files
+    "audio/*",                # All audio types
+    "application/octet-stream", # Generic binary data
+    "application/x-www-form-urlencoded" # Form data
+  ]
 }
 
 # Resources for each endpoint
@@ -204,4 +213,3 @@ resource "aws_lambda_permission" "allow_apigw_voice" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/GET/voice"
 }
-

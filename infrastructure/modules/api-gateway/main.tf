@@ -7,7 +7,8 @@ resource "aws_api_gateway_rest_api" "api" {
   binary_media_types = [
     "multipart/form-data",    # For form data with file uploads
     "audio/wav",              # Specifically for WAV files
-    "audio/*",                # All audio types
+    "audio/*",
+    "audio/webm",          
     "application/octet-stream", # Generic binary data
     "application/x-www-form-urlencoded" # Form data
   ]

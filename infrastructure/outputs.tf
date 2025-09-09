@@ -17,3 +17,14 @@ output "sns_user_secret_access_key" {
 output "sns_topic_arn" {
   value = module.sns_contact.sns_topic_arn
 }
+
+output "api_key_value" {
+  description = "The value of the API key. Store this securely!"
+  value       = module.api_gateway.api_key_value
+  sensitive   = true
+}
+
+output "api_key_id" {
+  description = "The ID of the API key"
+  value       = module.api_gateway.api_key_id
+}

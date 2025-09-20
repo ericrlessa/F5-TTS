@@ -28,3 +28,11 @@ output "api_key_id" {
   description = "The ID of the API key"
   value       = module.api_gateway.api_key_id
 }
+
+output "gen_audio_sqs_queue_url" {
+  value = module.gen_audio_queue.sqs_queue_url
+}
+
+output "gen_audio_sqs_queue_url_dlq" {
+  value = module.gen_audio_queue.sqs_queue_url_dlq
+}

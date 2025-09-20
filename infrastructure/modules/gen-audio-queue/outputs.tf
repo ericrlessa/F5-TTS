@@ -13,3 +13,7 @@ output "sqs_queue_result_url" {
 output "sqs_queue_result_arn" {
   value = aws_sqs_queue.gen_audio_result_queue.arn
 }
+
+output "sqs_queue_url_dlq" {
+  value = aws_sqs_queue.gen_audio_dlq.id
+}

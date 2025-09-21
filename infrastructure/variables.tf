@@ -36,7 +36,7 @@ variable "sqs_queue_name" {
 
 variable "ecs_instance_type" { 
   type=string 
-  default="g4dn.xlarge" 
+  default="g5.xlarge" 
 }
 
 variable "ecs_cluster_name" { 

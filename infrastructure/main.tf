@@ -8,6 +8,7 @@ provider "aws" {
   }
 }
 
+
 terraform {
   backend "s3" {}
 }
@@ -95,4 +96,11 @@ module "api_gateway" {
 module "sns_contact" {
   source = "./modules/sns-contact"
   sns_emails = var.sns_emails
+}
+
+module "cloudfront_domain" {
+  source = "./modules/dns_cloudfront"
+  origin_domain_name = var.origin_domain_name
+  domain_name = var.domain_name
+  origin_id = var.origin_id
 }

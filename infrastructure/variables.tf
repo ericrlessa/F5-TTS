@@ -81,3 +81,15 @@ variable "sns_emails" {
   description = "List of email addresses to subscribe to the SNS topic"
   type        = list(string)
 }
+
+variable "domain_name" {
+  type        = string
+}
+
+variable "origin_id" {
+  type        = string
+}
+
+variable "origin_domain_name" {
+  type        = string
+}

@@ -36,3 +36,11 @@ output "gen_audio_sqs_queue_url" {
 output "gen_audio_sqs_queue_url_dlq" {
   value = module.gen_audio_queue.sqs_queue_url_dlq
 }
+
+output "acm_certificate_validation_record" {
+  value = module.cloudfront_domain.acm_certificate_validation_record
+}
+
+output "cloudfront_domain_name" {
+  value = module.cloudfront_domain.cloudfront_domain_name
+}

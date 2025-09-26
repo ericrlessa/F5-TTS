@@ -44,3 +44,7 @@ output "acm_certificate_validation_record" {
 output "cloudfront_domain_name" {
   value = module.cloudfront_domain.cloudfront_domain_name
 }
+
+output "cloudfront_distribution_id" {
+  value = module.cloudfront_domain.cloudfront_distribution_id
+}

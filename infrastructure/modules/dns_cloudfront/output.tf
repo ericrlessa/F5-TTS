@@ -14,3 +14,7 @@ output "cloudfront_domain_name" {
   value       = aws_cloudfront_distribution.cdn_geniuspod.domain_name
   description = "CloudFront distribution domain to create CNAME in Namecheap"
 }
+
+output "cloudfront_distribution_id" {
+  value = aws_cloudfront_distribution.cdn_geniuspod.id
+}

@@ -21,6 +21,7 @@ locals {
   clone_service_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/lambda-voice-clone:latest"
   list_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/list-audio-handler:latest"
   processing_result_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/processing-result-listener:latest"
+  scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:latest"
 }
 
 variable "bucket_name" {
@@ -67,6 +68,11 @@ variable "list_audio_function_name" {
 variable "processing_result_function_name" {
   type    = string
   default = "processing-result-audio"
+}
+
+variable "scraper_function_name" {
+  type    = string
+  default = "scraper"
 }
 
 variable "supabase_url" {

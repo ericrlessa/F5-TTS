@@ -81,16 +81,26 @@ module "processing_result_audio" {
   env = var.env
 }
 
+module "scraper" {
+  source = "./modules/scraper"
+  scraper_function_name = var.scraper_function_name
+  scraper_image = local.scraper_image
+  region = var.region
+  env = var.env
+}
+
 module "api_gateway" {
   source = "./modules/api-gateway"
   clone_service_integration_uri = module.clone_service.lambda_invoke_arn
   generate_audio_integration_uri = module.generate_audio.lambda_invoke_arn
+  scraper_integration_uri = module.scraper.lambda_invoke_arn
   generate_audio_function_name = var.generate_audio_function_name
   clone_service_function_name = var.clone_service_function_name
   list_audio_integration_uri = module.list_audio.lambda_invoke_arn
   list_service_function_name = var.list_audio_function_name
   env = var.env
   region = var.region
+  scraper_function_name = var.scraper_function_name
 }
 
 module "sns_contact" {
@@ -104,3 +114,5 @@ module "cloudfront_domain" {
   domain_name = var.domain_name
   origin_id = var.origin_id
 }
+
+

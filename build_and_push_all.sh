@@ -12,3 +12,5 @@ bash ./list-audio/build_and_push.sh ${region}
 bash ./sqs-listener/build_and_push.sh ${region}
 
 bash ./processing-result-listener/build_and_push.sh ${region}
+
+bash ./scraper/build_and_push.sh ${region}

@@ -3,7 +3,6 @@ resource "aws_api_gateway_rest_api" "api" {
   name        = "voice-clone-api"
   description = "Voice Clone REST API"
   
-  # Add binary media types to handle audio files properly
   binary_media_types = [
     "multipart/form-data",    # For form data with file uploads
     "audio/wav",              # Specifically for WAV files
@@ -39,7 +38,20 @@ resource "aws_api_gateway_resource" "voice" {
   path_part   = "voice"
 }
 
-# Methods for each endpoint - UPDATED WITH API KEY REQUIRED
+resource "aws_api_gateway_resource" "scraper" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "scraper"
+}
+
+resource "aws_api_gateway_method" "scraper_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.scraper.id
+  http_method   = "POST"
+  authorization = "NONE"
+  api_key_required = true
+}
+
 resource "aws_api_gateway_method" "generate_audio_method" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.generate_audio.id
@@ -81,6 +93,16 @@ resource "aws_api_gateway_method" "voice_method" {
 }
 
 # Integrations
+
+resource "aws_api_gateway_integration" "scraper_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.scraper.id
+  http_method             = aws_api_gateway_method.scraper_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.scraper_integration_uri
+}
+
 resource "aws_api_gateway_integration" "generate_audio_integration" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.generate_audio.id
@@ -134,7 +156,8 @@ resource "aws_api_gateway_deployment" "deployment" {
     aws_api_gateway_integration.clone_service_integration,
     aws_api_gateway_integration.list_audio_integration,
     aws_api_gateway_integration.index_integration,
-    aws_api_gateway_integration.voice_integration
+    aws_api_gateway_integration.voice_integration,
+    aws_api_gateway_integration.scraper_integration
   ]
 
   lifecycle {
@@ -142,14 +165,12 @@ resource "aws_api_gateway_deployment" "deployment" {
   }
 }
 
-# Stage - MUST BE DEFINED BEFORE USAGE PLAN
 resource "aws_api_gateway_stage" "stage_env" {
   deployment_id = aws_api_gateway_deployment.deployment.id
   rest_api_id   = aws_api_gateway_rest_api.api.id
   stage_name    = var.env
 }
 
-# API Key and Usage Plan - MOVED AFTER STAGE DEFINITION
 resource "aws_api_gateway_api_key" "voice_clone_api_key" {
   name = "voice-clone-api-key"
   description = "API Key for Voice Clone API"
@@ -162,10 +183,8 @@ resource "aws_api_gateway_usage_plan" "voice_clone_usage_plan" {
 
   api_stages {
     api_id = aws_api_gateway_rest_api.api.id
-    stage  = aws_api_gateway_stage.stage_env.stage_name  # ✅ Now stage is defined
+    stage  = aws_api_gateway_stage.stage_env.stage_name
   }
-
-  
 }
 
 resource "aws_api_gateway_usage_plan_key" "main" {
@@ -175,6 +194,15 @@ resource "aws_api_gateway_usage_plan_key" "main" {
 }
 
 # Lambda permissions (updated for REST API)
+
+resource "aws_lambda_permission" "allow_apigw_scraper" {
+  statement_id  = "AllowInvokeFromApiGWScraper"
+  action        = "lambda:InvokeFunction"
+  function_name = var.scraper_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/POST/scraper"
+}
+
 resource "aws_lambda_permission" "allow_apigw_generate_audio" {
   statement_id  = "AllowInvokeFromApiGWGenerateAudio"
   action        = "lambda:InvokeFunction"

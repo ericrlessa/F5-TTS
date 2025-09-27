@@ -10,6 +10,11 @@ output "acm_certificate_validation_record" {
   description = "ACM DNS validation records to add manually in Namecheap"
 }
 
+output "certificate_arn" {
+  value = aws_acm_certificate.cert.arn
+}
+
+
 output "cloudfront_domain_name" {
   value       = aws_cloudfront_distribution.cdn_geniuspod.domain_name
   description = "CloudFront distribution domain to create CNAME in Namecheap"

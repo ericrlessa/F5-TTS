@@ -48,3 +48,7 @@ output "cloudfront_domain_name" {
 output "cloudfront_distribution_id" {
   value = module.cloudfront_domain.cloudfront_distribution_id
 }
+
+output "certificate_arn" {
+  value = module.cloudfront_domain.certificate_arn
+}

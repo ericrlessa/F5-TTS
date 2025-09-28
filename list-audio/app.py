@@ -63,7 +63,7 @@ def list_audio_files(model: Optional[str] = Query(..., description="Model to sea
                         (referenceAudio and isReferenceAudio)
                     ):
                         wav_files.append(obj)
-                    elif key.endswith(".txt") and (
+                    elif key.endswith(".txt") and not key.endswith("extracted_content.txt") and (
                         (not referenceAudio and not isReferenceText) or
                         (referenceAudio and isReferenceText)
                     ):

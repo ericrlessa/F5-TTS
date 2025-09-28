@@ -39,6 +39,7 @@ async def generate_audio_multiple_voices(
     podcast: str = Form(...),
     episode: str = Form(...),
     gen_text: str = Form(...),
+    extracted_content: str = Form(...),
     models: str = Form(...)
 ):
     try:
@@ -58,16 +59,25 @@ async def generate_audio_multiple_voices(
                 "s3_key_ref_audio": s3_key_ref_audio
             })
 
-        text_bytes = gen_text.encode("utf-8")
-        filename = str(uuid.uuid4())
-        s3_key_base = f"{user}/podcasts/{podcast}/{episode}/{filename}"
-        s3_key_gen_txt = f"{s3_key_base}.txt"
-        s3_key_output_wav = f"{s3_key_base}.wav"
+        transcript_bytes = gen_text.encode("utf-8")
+        s3_key_base = f"{user}/podcasts/{podcast}/{episode}"
+        s3_key_gen_txt = f"{s3_key_base}/transcript.txt"
+        s3_key_output_wav = f"{s3_key_base}/transcript.wav"
+
+        extracted_content_bytes = extracted_content.encode("utf-8")
+        s3_key_content_txt = f"{s3_key_base}/extracted_content.txt"
 
         s3.put_object(
             Bucket=BUCKET_NAME,
             Key=s3_key_gen_txt,
-            Body=text_bytes,
+            Body=transcript_bytes,
+            ContentType="text/plain"
+        )
+
+        s3.put_object(
+            Bucket=BUCKET_NAME,
+            Key=s3_key_content_txt,
+            Body=extracted_content_bytes,
             ContentType="text/plain"
         )
 

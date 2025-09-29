@@ -26,7 +26,7 @@ resource "aws_cloudfront_distribution" "cdn_geniuspod" {
   http_version    = "http2"
   price_class     = "PriceClass_All"
 
-  //aliases = ["geniuspod.ai", "www.geniuspod.ai"]
+  aliases = ["geniuspod.ai", "www.geniuspod.ai"]
 
   origin {
     origin_id   = var.origin_id
@@ -68,7 +68,7 @@ resource "aws_cloudfront_distribution" "cdn_geniuspod" {
   }
 
   viewer_certificate {
-   // acm_certificate_arn      = aws_acm_certificate.cert.arn
+    acm_certificate_arn      = aws_acm_certificate.cert.arn
     cloudfront_default_certificate = true
     ssl_support_method             = "vip"
     minimum_protocol_version       = "TLSv1"

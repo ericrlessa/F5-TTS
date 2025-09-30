@@ -40,7 +40,8 @@ async def generate_audio_multiple_voices(
     episode: str = Form(...),
     gen_text: str = Form(...),
     extracted_content: str = Form(...),
-    models: str = Form(...)
+    models: str = Form(...),
+    estimated_duration: int = Form(...),
 ):
     try:
 
@@ -85,7 +86,8 @@ async def generate_audio_multiple_voices(
             "bucket": BUCKET_NAME,
             "s3_key_gen": s3_key_gen_txt,
             "s3_key_output": s3_key_output_wav,
-            "voices": voices
+            "voices": voices,
+            "estimated_duration": estimated_duration
         }
 
         sqs.send_message(

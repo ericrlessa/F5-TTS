@@ -137,12 +137,23 @@ resource "aws_autoscaling_group" "ecs" {
     version = "$Latest"
   }
 
+  warm_pool {
+    pool_state                  = "Stopped"  # or "Running"
+    min_size                    = 1
+    max_group_prepared_capacity = 2
+    
+    instance_reuse_policy {
+      reuse_on_scale_in = true
+    }
+  }
+
   tag {
     key                 = "Name"
     value               = "ecs-instance"
     propagate_at_launch = true
   }
 }
+
 
 # ================= CloudWatch Metrics & Policies for autoscaling
 resource "aws_cloudwatch_metric_alarm" "scale_up" {

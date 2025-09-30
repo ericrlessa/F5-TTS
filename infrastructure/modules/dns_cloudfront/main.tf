@@ -36,8 +36,8 @@ resource "aws_cloudfront_distribution" "cdn_geniuspod" {
     custom_origin_config {
       http_port                = 80
       https_port               = 443
-      origin_protocol_policy   = "http-only"
-      origin_ssl_protocols     = ["SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"]
+      origin_protocol_policy   = "https-only"  
+      origin_ssl_protocols     = ["TLSv1.2"]
       origin_read_timeout      = 30
       origin_keepalive_timeout = 5
     }
@@ -69,9 +69,8 @@ resource "aws_cloudfront_distribution" "cdn_geniuspod" {
 
   viewer_certificate {
     acm_certificate_arn      = aws_acm_certificate.cert.arn
-    cloudfront_default_certificate = true
-    ssl_support_method             = "vip"
-    minimum_protocol_version       = "TLSv1"
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   restrictions {

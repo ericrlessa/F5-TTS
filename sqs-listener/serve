@@ -22,7 +22,7 @@ QUEUE_URL_RESULT = os.environ["SQS_SND_QUEUE_URL"]
 QUEUE_URL = os.environ["SQS_REC_QUEUE_URL"]
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
 WAIT_TIME_SECONDS = int(os.getenv("WAIT_TIME_SECONDS", 10))
-MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 5))
+MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 1))
 VISIBILITY_TIMEOUT = int(os.getenv("VISIBILITY_TIMEOUT", 30))
 
 # AWS clients
@@ -76,35 +76,49 @@ def process_message(message):
         logger.debug(traceback.format_exc())
         raise
 
+def set_processing_time_to_avoid_scaling_conflict(estimated_duration, receipt_handle):
+    sqs.change_message_visibility(
+        QueueUrl=QUEUE_URL,
+        ReceiptHandle=receipt_handle,
+        VisibilityTimeout=estimated_duration
+    )
+
 def poll_queue():
     logger.info("🚀 Listening for messages...")
     while True:
-        response = sqs.receive_message(
-            QueueUrl=QUEUE_URL,
-            MaxNumberOfMessages=MAX_MESSAGES,
-            WaitTimeSeconds=WAIT_TIME_SECONDS,
-            VisibilityTimeout=VISIBILITY_TIMEOUT,
-        )
+        try:
+            response = sqs.receive_message(
+                QueueUrl=QUEUE_URL,
+                MaxNumberOfMessages=MAX_MESSAGES,
+                WaitTimeSeconds=WAIT_TIME_SECONDS,
+                VisibilityTimeout=VISIBILITY_TIMEOUT,
+            )
 
-        messages = response.get("Messages", [])
-        if not messages:
-            continue
+            messages = response.get("Messages", [])
+            if not messages:
+                continue
 
-        for msg in messages:
-            receipt_handle = msg["ReceiptHandle"]
-            body = json.loads(msg["Body"])
-            result = process_message(body)
-            if result:
-                merge_rec_result = body | result | {"instance_id": get_ec2_instance_id()}
-                logger.info(f"📤 Sending JSON result to the queue: {merge_rec_result}")
-                send_result_message(merge_rec_result)
-                logger.info(f"✅ JSON result written to the queue")
-                sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt_handle)
-                logger.info("🗑️  Deleted message received")
-            else:
-                logger.info("⚠️  Message left for retry")
+            for msg in messages:
+                receipt_handle = msg["ReceiptHandle"]
+                body = json.loads(msg["Body"])
 
-        time.sleep(1)
+                set_processing_time_to_avoid_scaling_conflict(body.get("estimated_duration"), receipt_handle)
+
+                result = process_message(body)
+                if result:
+                    merge_rec_result = body | result | {"instance_id": get_ec2_instance_id()}
+                    logger.info(f"📤 Sending JSON result to the queue: {merge_rec_result}")
+                    send_result_message(merge_rec_result)
+                    logger.info(f"✅ JSON result written to the queue")
+                    sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt_handle)
+                    logger.info("🗑️  Deleted message received")
+                else:
+                    logger.info("⚠️  Message left for retry")
+
+            time.sleep(1)
+
+        except Exception as e:
+            print("Error caught:", e)
 
 if __name__ == "__main__":
     threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()

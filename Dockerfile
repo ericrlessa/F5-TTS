@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel
+FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
 
 USER root
 
@@ -32,9 +32,3 @@ ENV PATH="/workspace/F5-TTS/sqs-listener:${PATH}"
 WORKDIR /workspace/F5-TTS/sqs-listener
 
 EXPOSE 8080
-
-# ENTRYPOINT ["f5-tts_infer-cli", "--model", "F5TTS_v1_Base", \
-#      "--ref_audio", "/opt/ml/input/data/input/ref.wav", \
-#      "--ref_text", "Some call me nature, others call me mother nature.",  \
-#      "--gen_file", "/opt/ml/input/data/input/gen.txt", \
-#      "--output_dir", "/opt/ml/output"]

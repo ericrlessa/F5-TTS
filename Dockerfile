@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
+FROM nvidia/cuda:12.4-runtime-ubuntu20.04
 
 USER root
 
@@ -12,7 +12,9 @@ RUN set -x \
     && apt-get install -y nginx ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
-    
+
+RUN pip3 install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cu124
+
 COPY ./ /workspace/F5-TTS
 
 RUN chmod +x /workspace/F5-TTS/sqs-listener/serve

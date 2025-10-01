@@ -115,6 +115,7 @@ resource "aws_launch_template" "ecs" {
 #!/bin/bash
 echo ECS_CLUSTER=${aws_ecs_cluster.cluster.name} >> /etc/ecs/ecs.config
 echo ECS_ENABLE_AWSVPC_TRUNKING=true >> /etc/ecs/ecs.config
+echo ECS_IMAGE_PULL_BEHAVIOR=prefer-cached >> /etc/ecs/ecs.config
 EOF
   )
 }

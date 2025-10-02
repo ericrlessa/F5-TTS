@@ -18,7 +18,6 @@ resource "aws_acm_certificate" "cert" {
   }
 }
 
-
 resource "aws_cloudfront_distribution" "cdn_geniuspod" {
   enabled         = true
   comment         = ""
@@ -31,19 +30,15 @@ resource "aws_cloudfront_distribution" "cdn_geniuspod" {
   origin {
     origin_id   = var.origin_id
     domain_name = var.origin_domain_name
-    origin_path = ""
-
-    custom_origin_config {
-      http_port                = 80
-      https_port               = 443
-      origin_protocol_policy   = "https-only"  
-      origin_ssl_protocols     = ["TLSv1.2"]
-      origin_read_timeout      = 30
-      origin_keepalive_timeout = 5
+    
+     custom_origin_config {
+        http_port                = 80
+        https_port               = 443
+        origin_protocol_policy   = "http-only"
+        origin_ssl_protocols     = ["TLSv1.2"]
+        origin_read_timeout      = 60
+        origin_keepalive_timeout = 60
     }
-
-    connection_attempts = 3
-    connection_timeout  = 10
   }
 
   default_cache_behavior {

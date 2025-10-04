@@ -53,8 +53,8 @@ def lambda_handler(event, context):
 def process_message(message_data):
     logger.info(f"Processing: {message_data}")
 
-    estimated_duration = message_data.estimated_duration
-    plan = message_data.plan
+    estimated_duration = message_data["estimated_duration"]
+    plan = message_data.get("plan")
 
     if plan and plan == 'free':
         service_ecs = FREE_SERVICE_ECS

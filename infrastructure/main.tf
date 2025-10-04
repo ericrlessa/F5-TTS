@@ -41,6 +41,10 @@ module "f5tts" {
   vpc_id = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
   env = var.env
+  free_service_ecs = var.free_service_ecs
+  short_service_ecs = var.short_service_ecs
+  medium_service_ecs = var.medium_service_ecs
+  large_service_ecs = var.large_service_ecs
 }
 
 module "clone_service" {
@@ -114,5 +118,34 @@ module "cloudfront_domain" {
   domain_name = var.domain_name
   origin_id = var.origin_id
 }
+
+module "scaling_controller" {
+  source = "./modules/scaling-controller"
+  env = var.env
+  
+  function_name = var.scaling_conroller_function_name
+  image_name =  local.scaling_controller_image
+  ecs_cluster_name = var.ecs_cluster_name
+  
+  podcast_queue_arn = module.gen_audio_queue.sqs_queue_arn
+  podcast_queue_url = module.gen_audio_queue.sqs_queue_url
+
+  short_podcast_queue_arn = module.gen_audio_queue.short_podcast_queue_arn
+  short_podcast_queue_url = module.gen_audio_queue.sqs_short_podcasts_url
+  short_service_ecs = var.short_service_ecs
+
+  medium_podcast_queue_arn = module.gen_audio_queue.sqs_medium_podcasts_arn
+  medium_podcast_queue_url = module.gen_audio_queue.sqs_medium_podcasts_url
+  medium_service_ecs = var.medium_service_ecs
+
+  large_podcast_queue_arn = module.gen_audio_queue.sqs_large_podcasts_arn
+  large_podcast_queue_url = module.gen_audio_queue.sqs_large_podcasts_url
+  large_service_ecs = var.large_service_ecs
+  
+  free_podcast_queue_arn = module.gen_audio_queue.sqs_free_podcasts_arn
+  free_podcast_queue_url = module.gen_audio_queue.sqs_free_podcasts_url
+  free_service_ecs = var.free_service_ecs
+}
+
 
 

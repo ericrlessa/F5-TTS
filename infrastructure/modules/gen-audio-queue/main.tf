@@ -35,3 +35,57 @@ resource "aws_sqs_queue" "gen_audio_result_queue" {
     maxReceiveCount     = 3  # After 3 failed receives, message goes to DLQ
   })
 }
+
+resource "aws_sqs_queue" "short_podcasts_dlq" {
+  name = "short-podcasts-dlq"
+}
+
+resource "aws_sqs_queue" "short_podcasts" {
+  name = "short-podcasts"
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.short_podcasts_dlq.arn
+    maxReceiveCount     = 3  # After 3 failed receives, message goes to DLQ
+  })
+}
+
+resource "aws_sqs_queue" "medium_podcasts_dlq" {
+  name = "medium-podcasts-dlq"
+}
+
+resource "aws_sqs_queue" "medium_podcasts" {
+  name = "medium-podcasts"
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.medium_podcasts_dlq.arn
+    maxReceiveCount     = 3  # After 3 failed receives, message goes to DLQ
+  })
+}
+
+resource "aws_sqs_queue" "large_podcasts_dlq" {
+  name = "large-podcasts-dlq"
+}
+
+resource "aws_sqs_queue" "large_podcasts" {
+  name = "large-podcasts"
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.large_podcasts_dlq.arn
+    maxReceiveCount     = 3  # After 3 failed receives, message goes to DLQ
+  })
+}
+
+
+resource "aws_sqs_queue" "free_dlq" {
+  name = "free-dlq"
+}
+
+resource "aws_sqs_queue" "free" {
+  name = "free"
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.free_dlq.arn
+    maxReceiveCount     = 3  # After 3 failed receives, message goes to DLQ
+  })
+}
+

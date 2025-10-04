@@ -56,3 +56,35 @@ variable "env" {
   description = "environment"
   type        = string  
 }
+
+variable "free_service_ecs" {
+  type        = string  
+}
+
+variable "short_service_ecs" {
+  type        = string  
+}
+
+variable "medium_service_ecs" {
+  type        = string  
+}
+
+variable "large_service_ecs" {
+  type        = string  
+}
+
+variable "sqs_short_podcasts_url" {
+   type        = string  
+}
+
+variable "sqs_medium_podcasts_url" {
+  type        = string  
+}
+
+variable "sqs_large_podcasts_url" {
+  type        = string  
+}
+
+variable "sqs_free_podcasts_url" {
+  type        = string  
+}

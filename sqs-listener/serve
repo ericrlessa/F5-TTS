@@ -10,7 +10,8 @@ import traceback
 from predictor import inference
 import flask
 import threading
-
+import time
+from suicide import suicide
 
 import logging
 
@@ -33,13 +34,11 @@ app = flask.Flask(__name__)
 
 @app.route("/ping", methods=["GET"])
 def ping():
-    """Determine if the container is working and healthy. In this sample container, we declare
-    it healthy if we can load the model successfully."""
-#    health = ScoringService.get_model() is not None  # You can insert a health check here
-
- #   status = 200 if health else 404
-    return flask.Response(response="\n", status=200, mimetype="application/json")
-
+    return flask.Response(
+        response=json.dumps({}),
+        status=200,
+        mimetype="application/json"
+    )
 
 def get_ec2_instance_id():
     try:
@@ -84,7 +83,10 @@ def set_processing_time_to_avoid_scaling_conflict(estimated_duration, receipt_ha
     )
 
 def poll_queue():
-    logger.info("🚀 Listening for messages...")
+    logger.info("🚀 Listening for messages...")  
+
+    start_idle_time = time.time()
+
     while True:
         try:
             response = sqs.receive_message(
@@ -95,7 +97,13 @@ def poll_queue():
             )
 
             messages = response.get("Messages", [])
-            if not messages:
+            if messages:
+                start_idle_time = time.time()
+            else:
+                idle_time = time.time() - start_idle_time
+                if idle_time >= 300:
+                    suicide()
+                    break
                 continue
 
             for msg in messages:
@@ -115,7 +123,7 @@ def poll_queue():
                 else:
                     logger.info("⚠️  Message left for retry")
 
-            time.sleep(1)
+            time.sleep(2)
 
         except Exception as e:
             print("Error caught:", e)

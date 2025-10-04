@@ -22,6 +22,7 @@ locals {
   list_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/list-audio-handler:latest"
   processing_result_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/processing-result-listener:latest"
   scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:latest"
+  scaling_controller_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scaling_controller:latest"
 }
 
 variable "bucket_name" {
@@ -48,6 +49,11 @@ variable "ecs_cluster_name" {
 variable "ecs_ami_ssm_param" {
   type = string
   default = "/aws/service/ecs/optimized-ami/amazon-linux-2/gpu/recommended/image_id"
+}
+
+variable "scaling_conroller_function_name" {
+  type = string
+  default = "scaling_conroller"
 }
 
 variable "generate_audio_function_name" {
@@ -98,4 +104,24 @@ variable "origin_id" {
 
 variable "origin_domain_name" {
   type        = string
+}
+
+variable "free_service_ecs" {
+  type        = string
+  default = "free-plan-service"
+}
+
+variable "short_service_ecs" {
+  type        = string
+  default = "short-podcasts-service"
+}
+
+variable "medium_service_ecs" {
+  type        = string  
+  default = "medium-podcasts-service"
+}
+
+variable "large_service_ecs" {
+  type        = string  
+  default = "large-podcasts-service"
 }

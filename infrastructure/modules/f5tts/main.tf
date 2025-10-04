@@ -41,6 +41,14 @@ resource "aws_iam_policy" "ecs_sqs_s3_policy" {
           "s3:PutObject"
         ],
         Resource = "arn:aws:s3:::${var.bucket_name}/*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ecs:DescribeServices",
+          "ecs:UpdateService"
+        ],
+        "Resource": "*"
       }
     ]
   })
@@ -83,7 +91,7 @@ resource "aws_iam_role_policy_attachment" "ecs_cloudwatch_attach" {
 }
 
 resource "aws_cloudwatch_log_group" "ecs_log_group" {
-  name              = "/ecs/voice-clone"
+  name              = "/ecs/ecs-f5tts"
   retention_in_days = 1
 }
 
@@ -154,86 +162,34 @@ resource "aws_autoscaling_group" "ecs" {
   }
 }
 
+resource "aws_ecs_capacity_provider" "gpu_capacity" {
+  name = "gpu-capacity"
 
-# ================= CloudWatch Metrics & Policies for autoscaling
-resource "aws_cloudwatch_metric_alarm" "scale_up" {
-  alarm_name          = "sqs-scale-up"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  threshold           = 0
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  namespace           = "AWS/SQS"
-  dimensions          = { QueueName = var.sqs_queue_name }
-  statistic           = "Sum"
-  period              = 60
-  alarm_actions       = [aws_autoscaling_policy.scale_up.arn]
-}
+  auto_scaling_group_provider {
+    auto_scaling_group_arn = aws_autoscaling_group.ecs.arn
 
-resource "aws_cloudwatch_metric_alarm" "scale_down" {
-  alarm_name          = "sqs-scale-down-math"
-  evaluation_periods  = 5
-  threshold           = 1
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  alarm_actions       = [aws_autoscaling_policy.scale_down.arn]
-  treat_missing_data  = "notBreaching"
-
-  metric_query {
-    id = "m1"
-    metric {
-      namespace  = "AWS/SQS"
-      metric_name = "ApproximateNumberOfMessagesVisible"
-      period     = 60
-      stat       = "Sum"
-      dimensions = {
-        QueueName = var.sqs_queue_name
-      }
+    managed_scaling {
+      status          = "ENABLED"
+      target_capacity = 100
     }
-    return_data = false
-  }
-
-  metric_query {
-    id = "m2"
-    metric {
-      namespace  = "AWS/SQS"
-      metric_name = "ApproximateNumberOfMessagesNotVisible"
-      period     = 60
-      stat       = "Sum"
-      dimensions = {
-        QueueName = var.sqs_queue_name
-      }
-    }
-    return_data = false
-  }
-
-  metric_query {
-    id          = "e1"
-    expression  = "IF(m1 <= 0 && m2 <= 0, 1, 0)"
-    label       = "BothVisibleAndInflightZero"
-    return_data = true
+    
+    managed_termination_protection = "ENABLED"
   }
 }
 
-resource "aws_autoscaling_policy" "scale_up" {
-  name                  = "scale-up-policy"
-  autoscaling_group_name = aws_autoscaling_group.ecs.name
-  adjustment_type       = "ChangeInCapacity"
-  scaling_adjustment    = 1
-  cooldown              = 120
-  policy_type           = "SimpleScaling"
-}
-
-resource "aws_autoscaling_policy" "scale_down" {
-  name                  = "scale-down-policy"
-  autoscaling_group_name = aws_autoscaling_group.ecs.name
-  adjustment_type       = "ChangeInCapacity"
-  scaling_adjustment    = -1
-  cooldown              = 300
-  policy_type           = "SimpleScaling"
+resource "aws_ecs_cluster_capacity_providers" "cluster_cp" {
+  cluster_name = aws_ecs_cluster.cluster.name 
+  
+  capacity_providers = [aws_ecs_capacity_provider.gpu_capacity.name]
+  
+  default_capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.gpu_capacity.name
+  }
 }
 
 # ================= Task Definition
-resource "aws_ecs_task_definition" "task" {
-  family                   = "voice-clone-task"
+resource "aws_ecs_task_definition" "free_podcast_task" {
+  family                   = "free-podcast-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["EC2"]
   cpu                      = "4096"
@@ -241,7 +197,7 @@ resource "aws_ecs_task_definition" "task" {
   
   container_definitions = jsonencode([
     {
-      name         = "f5tts"
+      name         = "free-podcast"
       image        = var.f5tts_image
       essential    = true
       portMappings = [{ containerPort = 8080, protocol = "tcp" }]
@@ -255,17 +211,181 @@ resource "aws_ecs_task_definition" "task" {
       environment = [
         {
           name  = "SQS_REC_QUEUE_URL"
-          value = var.sqs_queue_url
+          value = var.sqs_free_podcasts_url
         },
         {
           name  = "SQS_SND_QUEUE_URL"
           value = var.sqs_result_queue_url
+        },
+        {
+          name  = "SERVICE_NAME"
+          value = var.free_service_ecs
         }
       ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = "/ecs/voice-clone"
+          awslogs-group         = "/ecs/free-podcast-container"
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/ping || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 10
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_task_definition" "short_podcast_task" {
+  family                   = "short-podcast-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["EC2"]
+  cpu                      = "4096"
+  memory                   = "14336"
+  
+  container_definitions = jsonencode([
+    {
+      name         = "short-podcast"
+      image        = var.f5tts_image
+      essential    = true
+      portMappings = [{ containerPort = 8080, protocol = "tcp" }]
+      command      = ["serve"]
+      resourceRequirements = [
+        {
+          type  = "GPU"
+          value = "1"
+        },
+      ]
+      environment = [
+        {
+          name  = "SQS_REC_QUEUE_URL"
+          value = var.sqs_short_podcasts_url
+        },
+        {
+          name  = "SQS_SND_QUEUE_URL"
+          value = var.sqs_result_queue_url
+        }
+        ,
+        {
+          name  = "SERVICE_NAME"
+          value = var.short_service_ecs
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/short-podcast-container"
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/ping || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 10
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_task_definition" "medium_podcast_task" {
+  family                   = "medium-podcast-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["EC2"]
+  cpu                      = "4096"
+  memory                   = "14336"
+  
+  container_definitions = jsonencode([
+    {
+      name         = "medium-podcast"
+      image        = var.f5tts_image
+      essential    = true
+      portMappings = [{ containerPort = 8080, protocol = "tcp" }]
+      command      = ["serve"]
+      resourceRequirements = [
+        {
+          type  = "GPU"
+          value = "1"
+        },
+      ]
+      environment = [
+        {
+          name  = "SQS_REC_QUEUE_URL"
+          value = var.sqs_medium_podcasts_url
+        },
+        {
+          name  = "SQS_SND_QUEUE_URL"
+          value = var.sqs_result_queue_url
+        },
+        {
+          name  = "SERVICE_NAME"
+          value = var.medium_service_ecs
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/medium-podcast-container"
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/ping || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 10
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_task_definition" "large_podcast_task" {
+  family                   = "large-podcast-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["EC2"]
+  cpu                      = "4096"
+  memory                   = "14336"
+  
+  container_definitions = jsonencode([
+    {
+      name         = "large-podcast"
+      image        = var.f5tts_image
+      essential    = true
+      portMappings = [{ containerPort = 8080, protocol = "tcp" }]
+      command      = ["serve"]
+      resourceRequirements = [
+        {
+          type  = "GPU"
+          value = "1"
+        },
+      ]
+      environment = [
+        {
+          name  = "SQS_REC_QUEUE_URL"
+          value = var.sqs_large_podcasts_url
+        },
+        {
+          name  = "SQS_SND_QUEUE_URL"
+          value = var.sqs_result_queue_url
+        },
+        {
+          name  = "SERVICE_NAME"
+          value = var.large_service_ecs
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/large-podcast-container"
           awslogs-region        = var.region
           awslogs-stream-prefix = "ecs"
         }
@@ -282,11 +402,50 @@ resource "aws_ecs_task_definition" "task" {
 }
 
 # ================= ECS Service
-resource "aws_ecs_service" "service" {
-  name            = "voice-clone-service"
+resource "aws_ecs_service" "free_service_ecs" {
+  name            = var.free_service_ecs
   cluster         = aws_ecs_cluster.cluster.id
-  task_definition = aws_ecs_task_definition.task.arn
-  desired_count   = 1
+  task_definition = aws_ecs_task_definition.free_podcast_task.arn
+  desired_count   = 0
+  launch_type     = "EC2"
+  network_configuration {
+    subnets         = var.private_subnet_ids
+    assign_public_ip = false
+    security_groups = [aws_security_group.ecs_tasks_sg.id] 
+  }
+}
+
+resource "aws_ecs_service" "short_service_ecs" {
+  name            = var.short_service_ecs
+  cluster         = aws_ecs_cluster.cluster.id
+  task_definition = aws_ecs_task_definition.short_podcast_task.arn
+  desired_count   = 0
+  launch_type     = "EC2"
+  network_configuration {
+    subnets         = var.private_subnet_ids
+    assign_public_ip = false
+    security_groups = [aws_security_group.ecs_tasks_sg.id] 
+  }
+}
+
+resource "aws_ecs_service" "medium_service_ecs" {
+  name            = var.medium_service_ecs
+  cluster         = aws_ecs_cluster.cluster.id
+  task_definition = aws_ecs_task_definition.medium_podcast_task.arn
+  desired_count   = 0
+  launch_type     = "EC2"
+  network_configuration {
+    subnets         = var.private_subnet_ids
+    assign_public_ip = false
+    security_groups = [aws_security_group.ecs_tasks_sg.id] 
+  }
+}
+
+resource "aws_ecs_service" "large_service_ecs" {
+  name            = var.large_service_ecs
+  cluster         = aws_ecs_cluster.cluster.id
+  task_definition = aws_ecs_task_definition.large_podcast_task.arn
+  desired_count   = 0
   launch_type     = "EC2"
   network_configuration {
     subnets         = var.private_subnet_ids

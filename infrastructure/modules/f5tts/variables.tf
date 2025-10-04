@@ -2,18 +2,6 @@ variable "region" {
   type=string 
 }
 
-variable "sqs_queue_name" { 
-  type=string 
-}
-
-variable "sqs_queue_arn" {
-  type        = string
-}
-
-variable "sqs_queue_url" {
-  type        = string
-}
-
 variable "sqs_result_queue_url" {
   type        = string
 }
@@ -86,5 +74,21 @@ variable "sqs_large_podcasts_url" {
 }
 
 variable "sqs_free_podcasts_url" {
+  type        = string  
+}
+
+variable "sqs_short_podcasts_arn" {
+   type        = string  
+}
+
+variable "sqs_medium_podcasts_arn" {
+  type        = string  
+}
+
+variable "sqs_large_podcasts_arn" {
+  type        = string  
+}
+
+variable "sqs_free_podcasts_arn" {
   type        = string  
 }

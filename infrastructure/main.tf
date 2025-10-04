@@ -27,11 +27,10 @@ module "vpc" {
 module "f5tts" {
   source = "./modules/f5tts"
   region = var.region
-  sqs_queue_name = var.sqs_queue_name
-  sqs_queue_arn = module.gen_audio_queue.sqs_queue_arn
-  sqs_queue_url = module.gen_audio_queue.sqs_queue_url
+  
   sqs_result_queue_url = module.gen_audio_queue.sqs_queue_result_url
   sqs_result_queue_arn = module.gen_audio_queue.sqs_queue_result_arn
+  
   ecs_instance_type = var.ecs_instance_type
   ecs_cluster_name = var.ecs_cluster_name
   ecs_ami_ssm_param = var.ecs_ami_ssm_param
@@ -40,11 +39,23 @@ module "f5tts" {
   bucket_name = var.bucket_name
   vpc_id = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
+  
   env = var.env
+  
   free_service_ecs = var.free_service_ecs
   short_service_ecs = var.short_service_ecs
   medium_service_ecs = var.medium_service_ecs
   large_service_ecs = var.large_service_ecs
+
+  sqs_free_podcasts_arn = module.gen_audio_queue.sqs_free_podcasts_arn
+  sqs_short_podcasts_arn = module.gen_audio_queue.sqs_short_podcasts_arn
+  sqs_medium_podcasts_arn = module.gen_audio_queue.sqs_medium_podcasts_arn
+  sqs_large_podcasts_arn = module.gen_audio_queue.sqs_large_podcasts_arn
+  
+  sqs_free_podcasts_url = module.gen_audio_queue.sqs_free_podcasts_url
+  sqs_short_podcasts_url = module.gen_audio_queue.sqs_short_podcasts_url
+  sqs_medium_podcasts_url = module.gen_audio_queue.sqs_medium_podcasts_url
+  sqs_large_podcasts_url = module.gen_audio_queue.sqs_large_podcasts_url
 }
 
 module "clone_service" {

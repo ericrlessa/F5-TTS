@@ -23,7 +23,12 @@ resource "aws_iam_policy" "ecs_sqs_s3_policy" {
           "sqs:GetQueueAttributes",
           "sqs:ChangeMessageVisibility"
         ],
-        Resource = var.sqs_queue_arn
+        Resource = [
+          var.sqs_free_podcasts_arn,
+          var.sqs_short_podcasts_arn,
+          var.sqs_medium_podcasts_arn,
+          var.sqs_large_podcasts_arn
+        ]
       },
       {
         Effect   = "Allow",

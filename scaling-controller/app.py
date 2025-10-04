@@ -124,7 +124,7 @@ def scale_ecs_service(ecs_service, podcast_queue_url, messages_per_instances):
 
     logger.info(f"Verifying service {ecs_service} to scale")
 
-    total_pending_messages = get_total_pending_messages(podcast_queue_url)
+    total_pending_messages = 1 + get_total_pending_messages(podcast_queue_url)
     _, desired_count, _ = count_running_instances(ecs_service)
 
     logger.info(f"Total pending messages: {total_pending_messages}")

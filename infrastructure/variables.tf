@@ -22,7 +22,7 @@ locals {
   list_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/list-audio-handler:latest"
   processing_result_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/processing-result-listener:latest"
   scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:latest"
-  scaling_controller_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scaling_controller:latest"
+  scaling_controller_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scaling-controller:latest"
 }
 
 variable "bucket_name" {

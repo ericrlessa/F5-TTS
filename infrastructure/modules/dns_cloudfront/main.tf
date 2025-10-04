@@ -9,12 +9,12 @@ resource "aws_acm_certificate" "cert" {
   validation_method         = "DNS"
   subject_alternative_names = ["www.${var.domain_name}"]
 
-  lifecycle {
-    create_before_destroy = true
-  }
-
   tags = {
     Name = "geniuspod-cert"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
@@ -24,6 +24,10 @@ resource "aws_cloudfront_distribution" "cdn_geniuspod" {
   is_ipv6_enabled = true
   http_version    = "http2"
   price_class     = "PriceClass_All"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 
   aliases = ["geniuspod.ai", "www.geniuspod.ai"]
 

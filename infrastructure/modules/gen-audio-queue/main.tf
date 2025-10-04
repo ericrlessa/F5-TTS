@@ -42,6 +42,7 @@ resource "aws_sqs_queue" "short_podcasts_dlq" {
 
 resource "aws_sqs_queue" "short_podcasts" {
   name = "short-podcasts"
+  visibility_timeout_seconds = 60
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.short_podcasts_dlq.arn
@@ -55,6 +56,7 @@ resource "aws_sqs_queue" "medium_podcasts_dlq" {
 
 resource "aws_sqs_queue" "medium_podcasts" {
   name = "medium-podcasts"
+  visibility_timeout_seconds = 60
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.medium_podcasts_dlq.arn
@@ -68,6 +70,7 @@ resource "aws_sqs_queue" "large_podcasts_dlq" {
 
 resource "aws_sqs_queue" "large_podcasts" {
   name = "large-podcasts"
+  visibility_timeout_seconds = 60
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.large_podcasts_dlq.arn
@@ -82,6 +85,7 @@ resource "aws_sqs_queue" "free_dlq" {
 
 resource "aws_sqs_queue" "free" {
   name = "free"
+  visibility_timeout_seconds = 60
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.free_dlq.arn

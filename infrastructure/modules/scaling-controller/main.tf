@@ -90,7 +90,7 @@ resource "aws_lambda_function" "scaling_controller" {
   package_type  = "Image"
   image_uri     = var.image_name
   role          = aws_iam_role.lambda_role.arn
-  timeout       = 60
+  timeout       = 30
 
   environment {
     variables = {

@@ -160,6 +160,8 @@ resource "aws_autoscaling_group" "ecs" {
     }
   }
 
+  protect_from_scale_in = true 
+
   tag {
     key                 = "Name"
     value               = "ecs-instance"

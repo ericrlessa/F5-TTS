@@ -54,7 +54,7 @@ def process_message(message_data):
     logger.info(f"Processing: {message_data}")
 
     estimated_duration = message_data["estimated_duration"]
-    estimated_duration = math.round(estimated_duration / 60)
+    estimated_duration = math.ceil(estimated_duration / 60)
     plan = message_data.get("plan")
 
     if plan and plan == 'free':

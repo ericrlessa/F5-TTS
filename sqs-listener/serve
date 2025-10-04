@@ -85,7 +85,7 @@ def set_processing_time_to_avoid_scaling_conflict(estimated_duration, receipt_ha
 def poll_queue():
     logger.info("🚀 Listening for messages...")  
 
-    start_idle_time = time.time()
+    start_idle_time = None
 
     while True:
         try:
@@ -98,12 +98,15 @@ def poll_queue():
 
             messages = response.get("Messages", [])
             if messages:
-                start_idle_time = time.time()
+                start_idle_time = None
             else:
+                if not start_idle_time:
+                    start_idle_time = time.time()
                 idle_time = time.time() - start_idle_time
                 if idle_time >= 300:
                     suicide()
                     break
+                time.sleep(2)
                 continue
 
             for msg in messages:
@@ -122,8 +125,6 @@ def poll_queue():
                     logger.info("🗑️  Deleted message received")
                 else:
                     logger.info("⚠️  Message left for retry")
-
-            time.sleep(2)
 
         except Exception as e:
             print("Error caught:", e)

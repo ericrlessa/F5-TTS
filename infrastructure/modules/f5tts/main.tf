@@ -140,9 +140,8 @@ resource "aws_ecs_cluster" "cluster" {
 # ================= Auto Scaling Group that can scale to 0
 resource "aws_autoscaling_group" "ecs" {
   name                = "ecs-asg"
-  desired_capacity    = 0
   min_size            = 0
-  max_size            = 1
+  max_size            = 20
   vpc_zone_identifier = var.private_subnet_ids
 
   launch_template {
@@ -177,7 +176,7 @@ resource "aws_ecs_capacity_provider" "gpu_capacity" {
 
     managed_scaling {
       status          = "ENABLED"
-      target_capacity = 100
+      target_capacity = 85
     }
     
     managed_termination_protection = "ENABLED"

@@ -128,5 +128,5 @@ variable "large_service_ecs" {
 
 variable "asg_name" {
   type        = string  
-  default = "asg_name"
+  default = "f5tts-asg"
 }

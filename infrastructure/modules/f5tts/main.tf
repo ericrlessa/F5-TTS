@@ -103,9 +103,24 @@ resource "aws_iam_role_policy_attachment" "ecs_cloudwatch_attach" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
 }
 
-resource "aws_cloudwatch_log_group" "ecs_log_group" {
-  name              = "/ecs/ecs-f5tts"
-  retention_in_days = 1
+resource "aws_cloudwatch_log_group" "ecs_free_log_group" {
+  name              = "/ecs/free-podcast-container"
+  retention_in_days = 3
+}
+
+resource "aws_cloudwatch_log_group" "ecs_short_log_group" {
+  name              = "/ecs/short-podcast-container"
+  retention_in_days = 3
+}
+
+resource "aws_cloudwatch_log_group" "ecs_medium_log_group" {
+  name              = "/ecs/medium-podcast-container"
+  retention_in_days = 3
+}
+
+resource "aws_cloudwatch_log_group" "ecs_large_log_group" {
+  name              = "/ecs/large-podcast-container"
+  retention_in_days = 3
 }
 
 # ================= Launch Template with ECS Optimized AMI

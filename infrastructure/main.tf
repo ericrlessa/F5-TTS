@@ -56,6 +56,8 @@ module "f5tts" {
   sqs_short_podcasts_url = module.gen_audio_queue.sqs_short_podcasts_url
   sqs_medium_podcasts_url = module.gen_audio_queue.sqs_medium_podcasts_url
   sqs_large_podcasts_url = module.gen_audio_queue.sqs_large_podcasts_url
+  
+  asg_name = var.asg_name
 }
 
 module "clone_service" {
@@ -156,6 +158,8 @@ module "scaling_controller" {
   free_podcast_queue_arn = module.gen_audio_queue.sqs_free_podcasts_arn
   free_podcast_queue_url = module.gen_audio_queue.sqs_free_podcasts_url
   free_service_ecs = var.free_service_ecs
+
+  asg_name = var.asg_name
 }
 
 

@@ -125,3 +125,8 @@ variable "large_service_ecs" {
   type        = string  
   default = "large-podcasts-service"
 }
+
+variable "asg_name" {
+  type        = string  
+  default = "asg_name"
+}

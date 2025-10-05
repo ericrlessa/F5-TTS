@@ -54,6 +54,14 @@ resource "aws_iam_policy" "ecs_sqs_s3_policy" {
           "ecs:UpdateService"
         ],
         "Resource": "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "autoscaling:SetDesiredCapacity",
+          "autoscaling:DescribeAutoScalingGroups"
+        ],
+        "Resource": "*"
       }
     ]
   })
@@ -139,10 +147,9 @@ resource "aws_ecs_cluster" "cluster" {
 
 # ================= Auto Scaling Group that can scale to 0
 resource "aws_autoscaling_group" "ecs" {
-  name                = "ecs-asg"
-  desired_capacity    = 0
+  name                = var.asg_name
   min_size            = 0
-  max_size            = 1
+  max_size            = 20
   vpc_zone_identifier = var.private_subnet_ids
 
   launch_template {
@@ -160,37 +167,10 @@ resource "aws_autoscaling_group" "ecs" {
     }
   }
 
-  protect_from_scale_in = true 
-
   tag {
     key                 = "Name"
     value               = "ecs-instance"
     propagate_at_launch = true
-  }
-}
-
-resource "aws_ecs_capacity_provider" "gpu_capacity" {
-  name = "gpu-capacity"
-
-  auto_scaling_group_provider {
-    auto_scaling_group_arn = aws_autoscaling_group.ecs.arn
-
-    managed_scaling {
-      status          = "ENABLED"
-      target_capacity = 100
-    }
-    
-    managed_termination_protection = "ENABLED"
-  }
-}
-
-resource "aws_ecs_cluster_capacity_providers" "cluster_cp" {
-  cluster_name = aws_ecs_cluster.cluster.name 
-  
-  capacity_providers = [aws_ecs_capacity_provider.gpu_capacity.name]
-  
-  default_capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.gpu_capacity.name
   }
 }
 

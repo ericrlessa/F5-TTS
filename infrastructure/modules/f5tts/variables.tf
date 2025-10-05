@@ -92,3 +92,7 @@ variable "sqs_large_podcasts_arn" {
 variable "sqs_free_podcasts_arn" {
   type        = string  
 }
+
+variable "asg_name" { 
+  type        = string  
+}

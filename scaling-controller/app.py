@@ -18,8 +18,12 @@ LARGE_SERVICE_ECS    = os.environ.get("LARGE_SERVICE_ECS")
 
 ECS_CLUSTER_NAME   = os.environ.get("ECS_CLUSTER_NAME")
 
+ASG_NAME    = os.environ.get("ASG_NAME")
+
 sqs = boto3.client("sqs", region_name=REGION_NAME)
 ecs = boto3.client("ecs", region_name=REGION_NAME)
+autoscaling = boto3.client('autoscaling', region_name=REGION_NAME)
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -134,19 +138,43 @@ def scale_ecs_service(ecs_service, podcast_queue_url, messages_per_instances):
     logger.info(f"Expected instances: {expected_instances} Desired count: {desired_count}")
 
     if desired_count < expected_instances:
-        scale(ecs_service, expected_instances) # scale up
+        instances_to_add = expected_instances - desired_count
+        scale_ecs(ecs_service, expected_instances)
+        scale_asg(instances_to_add)
     # elif desired_count > expected_instances and total_pending_messages < desired_count:
     #     kill_idle_task(ecs_service, desired_count - total_pending_messages)
     #     scale(ecs_service, total_pending_messages) # scale down, there is instance doing nothing
 
 
-def scale(service, desiredCount):
+def scale_ecs(service, desiredCount):
     logger.info(f"Scaling service: {service} Desired count: {desiredCount}")
     ecs.update_service(
         cluster=ECS_CLUSTER_NAME,
         service=service,
         desiredCount=desiredCount
     )
+
+def scale_asg(instances_to_add):
+    # Get current ASG desired capacity
+    logger.info(f"Getting current ASG desired capacity")
+
+    asg_response = autoscaling.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[ASG_NAME]
+    )
+    
+    current_asg_desired = asg_response['AutoScalingGroups'][0]['DesiredCapacity']
+    logger.info(f"Current ASG desired capacity: {current_asg_desired}")
+    
+    new_asg_desired = max(0, current_asg_desired + instances_to_add)
+    logger.info(f"Updating ASG desired capacity to: {new_asg_desired}")
+    
+    # Update ASG desired capacity
+    autoscaling.set_desired_capacity(
+        AutoScalingGroupName=ASG_NAME,
+        DesiredCapacity=new_asg_desired,
+        HonorCooldown=False
+    )
+    logger.info("Successfully updated ASG desired capacity")
 
 # def kill_idle_task(service, number_tasks):
 #     # Get all tasks in the service

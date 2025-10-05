@@ -74,6 +74,23 @@ resource "aws_iam_policy" "lambda_ecs_policy" {
   })
 }
 
+resource "aws_iam_policy" "lambda_asg_policy" {
+  name        = "scaling-controller-asg-policy-${var.env}"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+     {
+        Effect = "Allow",
+        Action = [
+          "autoscaling:SetDesiredCapacity",
+          "autoscaling:DescribeAutoScalingGroups"
+        ],
+        "Resource": "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "lambda_sqs_attach" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.lambda_sqs_policy.arn
@@ -82,6 +99,11 @@ resource "aws_iam_role_policy_attachment" "lambda_sqs_attach" {
 resource "aws_iam_role_policy_attachment" "lambda_ecs_attach" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.lambda_ecs_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_asg_attach" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_asg_policy.arn
 }
 
 # ================= Lambda Function
@@ -105,6 +127,8 @@ resource "aws_lambda_function" "scaling_controller" {
       LARGE_SERVICE_ECS    = var.large_service_ecs
 
       ECS_CLUSTER_NAME   = var.ecs_cluster_name
+
+      ASG_NAME = var.asg_name
     }
   }
 }

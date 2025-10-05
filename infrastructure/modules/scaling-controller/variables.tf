@@ -70,3 +70,7 @@ variable "large_service_ecs" {
 variable "ecs_cluster_name" {
   type        = string
 }
+
+variable "asg_name" {
+  type        = string
+}

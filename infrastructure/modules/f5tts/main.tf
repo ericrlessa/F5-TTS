@@ -229,7 +229,7 @@ resource "aws_ecs_task_definition" "free_podcast_task" {
         },
         {
           name  = "SQS_END_IDLE_TASK_QUEUE_URL"
-          value = var.sqs_end_idle_task_arn
+          value = var.sqs_end_idle_task_url
         },
         {
           name  = "ECS_ENABLE_CONTAINER_METADATA"
@@ -296,7 +296,7 @@ resource "aws_ecs_task_definition" "short_podcast_task" {
         },
         {
           name  = "SQS_END_IDLE_TASK_QUEUE_URL"
-          value = var.sqs_end_idle_task_arn
+          value = var.sqs_end_idle_task_url
         },
         {
           name  = "ECS_ENABLE_CONTAINER_METADATA"
@@ -361,7 +361,7 @@ resource "aws_ecs_task_definition" "medium_podcast_task" {
         },
         {
           name  = "SQS_END_IDLE_TASK_QUEUE_URL"
-          value = var.sqs_end_idle_task_arn
+          value = var.sqs_end_idle_task_url
         },
         {
           name  = "ECS_ENABLE_CONTAINER_METADATA"
@@ -426,7 +426,7 @@ resource "aws_ecs_task_definition" "large_podcast_task" {
         },
         {
           name  = "SQS_END_IDLE_TASK_QUEUE_URL"
-          value = var.sqs_end_idle_task_arn
+          value = var.sqs_end_idle_task_url
         },
         {
           name  = "ECS_ENABLE_CONTAINER_METADATA"

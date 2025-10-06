@@ -27,16 +27,20 @@ resource "aws_iam_policy" "ecs_sqs_s3_policy" {
           var.sqs_free_podcasts_arn,
           var.sqs_short_podcasts_arn,
           var.sqs_medium_podcasts_arn,
-          var.sqs_large_podcasts_arn
+          var.sqs_large_podcasts_arn          
         ]
       },
       {
         Effect   = "Allow",
         Action = [
           "sqs:SendMessage",
-          "sqs:GetQueueAttributes"
+          "sqs:GetQueueAttributes",
+          "sqs:DeleteMessage"
         ],
-        Resource = var.sqs_result_queue_arn
+        Resource = [
+          var.sqs_result_queue_arn,
+          var.sqs_end_idle_task_arn
+        ]
       },
       {
         Effect   = "Allow",
@@ -222,6 +226,10 @@ resource "aws_ecs_task_definition" "free_podcast_task" {
         {
           name  = "SERVICE_NAME"
           value = var.free_service_ecs
+        },
+        {
+          name  = "SQS_END_IDLE_TASK_QUEUE_URL"
+          value = var.sqs_end_idle_task_arn
         }
       ]
       logConfiguration = {
@@ -276,6 +284,10 @@ resource "aws_ecs_task_definition" "short_podcast_task" {
         {
           name  = "SERVICE_NAME"
           value = var.short_service_ecs
+        },
+        {
+          name  = "SQS_END_IDLE_TASK_QUEUE_URL"
+          value = var.sqs_end_idle_task_arn
         }
       ]
       logConfiguration = {
@@ -329,6 +341,10 @@ resource "aws_ecs_task_definition" "medium_podcast_task" {
         {
           name  = "SERVICE_NAME"
           value = var.medium_service_ecs
+        },
+        {
+          name  = "SQS_END_IDLE_TASK_QUEUE_URL"
+          value = var.sqs_end_idle_task_arn
         }
       ]
       logConfiguration = {
@@ -382,6 +398,10 @@ resource "aws_ecs_task_definition" "large_podcast_task" {
         {
           name  = "SERVICE_NAME"
           value = var.large_service_ecs
+        },
+        {
+          name  = "SQS_END_IDLE_TASK_QUEUE_URL"
+          value = var.sqs_end_idle_task_arn
         }
       ]
       logConfiguration = {

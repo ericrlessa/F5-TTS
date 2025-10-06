@@ -96,3 +96,7 @@ variable "sqs_free_podcasts_arn" {
 variable "asg_name" { 
   type        = string  
 }
+
+variable "sqs_end_idle_task_arn" {
+  type        = string
+}

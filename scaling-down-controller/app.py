@@ -1,34 +1,60 @@
 import os
-import boto3
+import json
 import logging
+import boto3
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
 
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
-
-ECS_CLUSTER_NAME = os.environ.get('ECS_CLUSTER')
-ECS_TASK_ARN = os.environ.get('ECS_TASK_ARN')
-SERVICE_NAME = os.environ.get('SERVICE_NAME')
-
 ASG_NAME    = os.environ.get("ASG_NAME")
 
 ecs = boto3.client('ecs', region_name=REGION_NAME)
 autoscaling = boto3.client('autoscaling', region_name=REGION_NAME)
 
-def suicide():
-    logger.info("Starting suicide process")
-    update_ecs()
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+def lambda_handler(event, context):
+    logger.info(f"Processing {len(event['Records'])} messages")
+    
+    for record in event['Records']:
+        try:
+            message_body = record['body']
+            message_id = record['messageId']
+            
+            logger.info(f"Processing message {message_id}")
+            
+            message_data = json.loads(message_body)
+            
+            process_message(message_data)
+            
+            logger.info(f"Successfully processed message {message_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to process message {message_id}: {str(e)}")
+            # Let the exception bubble up - SQS will handle retry/DLQ
+            raise e
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps(f"Processed {len(event['Records'])} messages")
+    }
+
+def process_message(message_data):
+    logger.info(f"Processing: {message_data}")
+    cluster = message_data["ecs_cluster_name"]
+    service = message_data["ecs_service_name"]
+    task    = message_data["ecs_task_arn"]
+
+    update_ecs(cluster, service, task)
     update_asg()
-    logger.info("Suicide process finished")
 
+    logger.info("Processing finished successfully")
 
-def update_ecs():
-    # Get current desired count
-    logger.info(f"Getting current desired count for service {SERVICE_NAME}")
+def update_ecs(cluster, service, task):
+    logger.info(f"Getting current desired count for service {service}")
     service = ecs.describe_services(
-        cluster=ECS_CLUSTER_NAME,
-        services=[SERVICE_NAME]
+        cluster=cluster,
+        services=[service]
     )['services'][0]
     
     current_desired = service['desiredCount']
@@ -37,19 +63,17 @@ def update_ecs():
     new_desired = max(0, current_desired - 1)
     logger.info(f"Updating desired count to: {new_desired}")
     
-    # Update desired count first
     ecs.update_service(
-        cluster=ECS_CLUSTER_NAME,
-        service=SERVICE_NAME,
+        cluster=cluster,
+        service=service,
         desiredCount=new_desired
     )
     logger.info("Successfully updated service desired count")
     
-    # Then suicide
-    logger.info(f"Stopping task: {ECS_TASK_ARN}")
+    logger.info(f"Stopping task: {task}")
     ecs.stop_task(
-        cluster=ECS_CLUSTER_NAME,
-        task=ECS_TASK_ARN,
+        cluster=service,
+        task=task,
         reason='Nothing to do'
     )
     logger.info("Task stop command sent successfully")

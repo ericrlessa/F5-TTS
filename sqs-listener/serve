@@ -11,7 +11,6 @@ from predictor import inference
 import flask
 import threading
 import time
-from suicide import suicide
 
 import logging
 
@@ -25,6 +24,13 @@ REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
 WAIT_TIME_SECONDS = int(os.getenv("WAIT_TIME_SECONDS", 10))
 MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 1))
 VISIBILITY_TIMEOUT = int(os.getenv("VISIBILITY_TIMEOUT", 30))
+
+QUEUE_END_IDLE_TASK_URL = os.environ["SQS_END_IDLE_TASK_QUEUE_URL"]
+
+ECS_CLUSTER_NAME = os.environ.get('ECS_CLUSTER')
+ECS_TASK_ARN = os.environ.get('ECS_TASK_ARN')
+SERVICE_NAME = os.environ.get('SERVICE_NAME')
+
 
 # AWS clients
 sqs = boto3.client("sqs", region_name=REGION_NAME)
@@ -61,6 +67,16 @@ def send_result_message(message):
     sqs.send_message(
             QueueUrl=QUEUE_URL_RESULT,
             MessageBody=json.dumps(message)
+    )
+
+def send_end_idle_task():
+    sqs.send_message(
+        QueueUrl=QUEUE_END_IDLE_TASK_URL,
+        MessageBody=json.dumps({
+            "ecs_task_arn": ECS_TASK_ARN,
+            "ecs_service_name": SERVICE_NAME,
+            "ecs_cluster_name": ECS_CLUSTER_NAME
+        })
     )
 
 def process_message(message):
@@ -104,7 +120,8 @@ def poll_queue():
                     start_idle_time = time.time()
                 idle_time = time.time() - start_idle_time
                 if idle_time >= 300:
-                    suicide()
+                    send_end_idle_task()
+                    logger.info(f"Ending processing after waiting for new messages")
                     break
                 time.sleep(2)
                 continue
@@ -127,7 +144,7 @@ def poll_queue():
                     logger.info("⚠️  Message left for retry")
 
         except Exception as e:
-            print("Error caught:", e)
+            logger.error(f"Error caught: {e}")
 
 if __name__ == "__main__":
     threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()

@@ -23,6 +23,7 @@ locals {
   processing_result_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/processing-result-listener:latest"
   scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:latest"
   scaling_controller_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scaling-controller:latest"
+  scaling_down_controller_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scaling-down-controller:latest"
 }
 
 variable "bucket_name" {
@@ -79,6 +80,11 @@ variable "processing_result_function_name" {
 variable "scraper_function_name" {
   type    = string
   default = "scraper"
+}
+
+variable "scaling_down_controller_function_name" {
+  type    = string
+  default = "scaling-down-controller"
 }
 
 variable "supabase_url" {

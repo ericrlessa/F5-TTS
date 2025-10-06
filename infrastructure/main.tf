@@ -58,6 +58,8 @@ module "f5tts" {
   sqs_large_podcasts_url = module.gen_audio_queue.sqs_large_podcasts_url
   
   asg_name = var.asg_name
+
+  sqs_end_idle_task_arn = module.gen_audio_queue.sqs_end_idle_task_arn
 }
 
 module "clone_service" {
@@ -160,6 +162,15 @@ module "scaling_controller" {
   free_service_ecs = var.free_service_ecs
 
   asg_name = var.asg_name
+}
+
+module "scaling_down_controller" {
+  source = "./modules/scaling-down-controller"
+  env = var.env
+  asg_name = var.asg_name
+  end_idle_task_queue_arn = module.gen_audio_queue.sqs_end_idle_task_arn
+  image =  local.scaling_down_controller_image
+  function_name = var.scaling_down_controller_function_name
 }
 
 

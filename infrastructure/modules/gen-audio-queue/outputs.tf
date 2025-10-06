@@ -50,3 +50,11 @@ output "sqs_free_podcasts_url" {
 output "sqs_free_podcasts_arn" {
   value = aws_sqs_queue.free.arn
 }
+
+output "sqs_end_idle_task_url" {
+  value = aws_sqs_queue.end_idle_task.id
+}
+
+output "sqs_end_idle_task_arn" {
+  value = aws_sqs_queue.end_idle_task.arn
+}

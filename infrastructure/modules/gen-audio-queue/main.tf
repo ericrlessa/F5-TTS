@@ -93,3 +93,16 @@ resource "aws_sqs_queue" "free" {
   })
 }
 
+resource "aws_sqs_queue" "end_idle_task_dlq" {
+  name = "end-idle-task-dlq"
+}
+
+resource "aws_sqs_queue" "end_idle_task" {
+  name = "end-idle-task"
+  visibility_timeout_seconds = 60
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.free_dlq.arn
+    maxReceiveCount     = 3  # After 3 failed receives, message goes to DLQ
+  })
+}

@@ -59,6 +59,7 @@ module "f5tts" {
   
   asg_name = var.asg_name
 
+  sqs_end_idle_task_url = module.gen_audio_queue.sqs_end_idle_task_url
   sqs_end_idle_task_arn = module.gen_audio_queue.sqs_end_idle_task_arn
 }
 

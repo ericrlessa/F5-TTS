@@ -230,7 +230,16 @@ resource "aws_ecs_task_definition" "free_podcast_task" {
         {
           name  = "SQS_END_IDLE_TASK_QUEUE_URL"
           value = var.sqs_end_idle_task_arn
+        },
+        {
+          name  = "ECS_ENABLE_CONTAINER_METADATA"
+          value = "true"
+        },
+        {
+          name  = "ECS_CLUSTER"
+          value = var.ecs_cluster_name
         }
+        
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -288,6 +297,14 @@ resource "aws_ecs_task_definition" "short_podcast_task" {
         {
           name  = "SQS_END_IDLE_TASK_QUEUE_URL"
           value = var.sqs_end_idle_task_arn
+        },
+        {
+          name  = "ECS_ENABLE_CONTAINER_METADATA"
+          value = "true"
+        },
+        {
+          name  = "ECS_CLUSTER"
+          value = var.ecs_cluster_name
         }
       ]
       logConfiguration = {
@@ -345,6 +362,14 @@ resource "aws_ecs_task_definition" "medium_podcast_task" {
         {
           name  = "SQS_END_IDLE_TASK_QUEUE_URL"
           value = var.sqs_end_idle_task_arn
+        },
+        {
+          name  = "ECS_ENABLE_CONTAINER_METADATA"
+          value = "true"
+        },
+        {
+          name  = "ECS_CLUSTER"
+          value = var.ecs_cluster_name
         }
       ]
       logConfiguration = {
@@ -402,6 +427,14 @@ resource "aws_ecs_task_definition" "large_podcast_task" {
         {
           name  = "SQS_END_IDLE_TASK_QUEUE_URL"
           value = var.sqs_end_idle_task_arn
+        },
+        {
+          name  = "ECS_ENABLE_CONTAINER_METADATA"
+          value = "true"
+        },
+        {
+          name  = "ECS_CLUSTER"
+          value = var.ecs_cluster_name
         }
       ]
       logConfiguration = {

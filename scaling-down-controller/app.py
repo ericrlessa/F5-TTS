@@ -41,20 +41,20 @@ def lambda_handler(event, context):
 
 def process_message(message_data):
     logger.info(f"Processing: {message_data}")
-    cluster = message_data["ecs_cluster_name"]
-    service = message_data["ecs_service_name"]
-    task    = message_data["ecs_task_arn"]
+    ecs_cluster_name = message_data["ecs_cluster_name"]
+    ecs_service_name = message_data["ecs_service_name"]
+    ecs_task_arn    = message_data["ecs_task_arn"]
 
-    update_ecs(cluster, service, task)
+    update_ecs(ecs_cluster_name, ecs_service_name, ecs_task_arn)
     update_asg()
 
     logger.info("Processing finished successfully")
 
-def update_ecs(cluster, service, task):
+def update_ecs(ecs_cluster_name, ecs_service_name, ecs_task_arn):
     logger.info(f"Getting current desired count for service {service}")
     service = ecs.describe_services(
-        cluster=cluster,
-        services=[service]
+        cluster=ecs_cluster_name,
+        services=[ecs_service_name]
     )['services'][0]
     
     current_desired = service['desiredCount']
@@ -64,16 +64,16 @@ def update_ecs(cluster, service, task):
     logger.info(f"Updating desired count to: {new_desired}")
     
     ecs.update_service(
-        cluster=cluster,
-        service=service,
+        cluster=ecs_cluster_name,
+        service=ecs_service_name,
         desiredCount=new_desired
     )
     logger.info("Successfully updated service desired count")
     
-    logger.info(f"Stopping task: {task}")
+    logger.info(f"Stopping task: {ecs_task_arn}")
     ecs.stop_task(
         cluster=service,
-        task=task,
+        task=ecs_task_arn,
         reason='Nothing to do'
     )
     logger.info("Task stop command sent successfully")

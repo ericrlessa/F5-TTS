@@ -164,12 +164,19 @@ resource "aws_ecs_cluster" "cluster" {
   name = var.ecs_cluster_name
 }
 
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  cluster_name = aws_ecs_cluster.cluster.name
+  capacity_providers = [aws_ecs_capacity_provider.ec2_capacity.name]
+}
+
 # ================= Auto Scaling Group that can scale to 0
 resource "aws_autoscaling_group" "ecs" {
   name                = var.asg_name
   min_size            = 0
   max_size            = 20
   vpc_zone_identifier = var.private_subnet_ids
+
+  protect_from_scale_in = true
 
   launch_template {
     id      = aws_launch_template.ecs.id
@@ -186,10 +193,33 @@ resource "aws_autoscaling_group" "ecs" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [
+      # Don't revert manual scaling in Terraform
+      desired_capacity
+    ]
+  }
+
   tag {
     key                 = "Name"
     value               = "ecs-instance"
     propagate_at_launch = true
+  }
+}
+
+resource "aws_ecs_capacity_provider" "ec2_capacity" {
+  name = "ec2-capacity-provider"
+
+  auto_scaling_group_provider {
+    auto_scaling_group_arn = aws_autoscaling_group.ecs.arn
+    
+    managed_termination_protection = "ENABLED"  # Protects during scale-down
+    
+    
+    managed_scaling {
+      status          = "ENABLED"
+      target_capacity = 100
+    }
   }
 }
 
@@ -462,11 +492,16 @@ resource "aws_ecs_service" "free_service_ecs" {
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.free_podcast_task.arn
   desired_count   = 0
-  launch_type     = "EC2"
+
   network_configuration {
     subnets         = var.private_subnet_ids
     assign_public_ip = false
     security_groups = [aws_security_group.ecs_tasks_sg.id] 
+  }
+
+  # Allow manual scaling without Terraform conflicts
+  lifecycle {
+    ignore_changes = [desired_count]
   }
 }
 
@@ -475,12 +510,18 @@ resource "aws_ecs_service" "short_service_ecs" {
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.short_podcast_task.arn
   desired_count   = 0
-  launch_type     = "EC2"
+
   network_configuration {
     subnets         = var.private_subnet_ids
     assign_public_ip = false
     security_groups = [aws_security_group.ecs_tasks_sg.id] 
   }
+
+  # Allow manual scaling without Terraform conflicts
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
 }
 
 resource "aws_ecs_service" "medium_service_ecs" {
@@ -488,11 +529,16 @@ resource "aws_ecs_service" "medium_service_ecs" {
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.medium_podcast_task.arn
   desired_count   = 0
-  launch_type     = "EC2"
+
   network_configuration {
     subnets         = var.private_subnet_ids
     assign_public_ip = false
     security_groups = [aws_security_group.ecs_tasks_sg.id] 
+  }
+
+  # Allow manual scaling without Terraform conflicts
+  lifecycle {
+    ignore_changes = [desired_count]
   }
 }
 
@@ -501,11 +547,16 @@ resource "aws_ecs_service" "large_service_ecs" {
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.large_podcast_task.arn
   desired_count   = 0
-  launch_type     = "EC2"
+
   network_configuration {
     subnets         = var.private_subnet_ids
     assign_public_ip = false
     security_groups = [aws_security_group.ecs_tasks_sg.id] 
+  }
+  
+  # Allow manual scaling without Terraform conflicts
+  lifecycle {
+    ignore_changes = [desired_count]
   }
 }
 

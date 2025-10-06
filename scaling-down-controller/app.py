@@ -72,7 +72,7 @@ def update_ecs(ecs_cluster_name, ecs_service_name, ecs_task_arn):
     
     logger.info(f"Stopping task: {ecs_task_arn}")
     ecs.stop_task(
-        cluster=ecs_service_name,
+        cluster=ecs_cluster_name,
         task=ecs_task_arn,
         reason='Nothing to do'
     )

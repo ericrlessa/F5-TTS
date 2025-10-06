@@ -51,7 +51,7 @@ def process_message(message_data):
     logger.info("Processing finished successfully")
 
 def update_ecs(ecs_cluster_name, ecs_service_name, ecs_task_arn):
-    logger.info(f"Getting current desired count for service {service}")
+    logger.info(f"Getting current desired count for service {ecs_service_name}")
     service = ecs.describe_services(
         cluster=ecs_cluster_name,
         services=[ecs_service_name]
@@ -72,7 +72,7 @@ def update_ecs(ecs_cluster_name, ecs_service_name, ecs_task_arn):
     
     logger.info(f"Stopping task: {ecs_task_arn}")
     ecs.stop_task(
-        cluster=service,
+        cluster=ecs_service_name,
         task=ecs_task_arn,
         reason='Nothing to do'
     )

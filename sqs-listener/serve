@@ -92,16 +92,22 @@ def send_end_idle_task():
         })
     )
 
-def process_message(message):
+def process_message(message_body, receipt_handle):
     try:
         logger.info(f"📤 Starting inference...")
-        result = inference(message)
+        result = inference(message_body)
         logger.info(f"✅ Result: {result}")
 
         return result
     except Exception as e:
         logger.error(f"❌ Error processing message: {e}")
         logger.debug(traceback.format_exc())
+        sqs.change_message_visibility(
+            QueueUrl=QUEUE_URL,
+            ReceiptHandle=receipt_handle,
+            VisibilityTimeout=120
+        )
+        logger.info("Visibility timeout set to 120 seconds to the message be available for retry")
         raise
 
 def set_processing_time_to_avoid_scaling_conflict(estimated_duration, receipt_handle):
@@ -126,6 +132,7 @@ def poll_queue():
             )
 
             messages = response.get("Messages", [])
+            
             if messages:
                 start_idle_time = None
             else:
@@ -145,7 +152,8 @@ def poll_queue():
 
                 set_processing_time_to_avoid_scaling_conflict(body.get("estimated_duration"), receipt_handle)
 
-                result = process_message(body)
+                result = process_message(body, receipt_handle)
+
                 if result:
                     merge_rec_result = body | result | {"instance_id": get_ec2_instance_id()}
                     logger.info(f"📤 Sending JSON result to the queue: {merge_rec_result}")

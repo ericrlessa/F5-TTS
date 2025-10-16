@@ -171,6 +171,8 @@ resource "aws_autoscaling_group" "ecs" {
   max_size            = 20
   vpc_zone_identifier = var.private_subnet_ids
 
+  protect_from_scale_in = false
+
   launch_template {
     id      = aws_launch_template.ecs.id
     version = "$Latest"
@@ -462,11 +464,22 @@ resource "aws_ecs_service" "free_service_ecs" {
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.free_podcast_task.arn
   desired_count   = 0
-  launch_type     = "EC2"
+  
   network_configuration {
     subnets         = var.private_subnet_ids
     assign_public_ip = false
     security_groups = [aws_security_group.ecs_tasks_sg.id] 
+  }
+
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.ec2_capacity.name
+    weight            = 1
+  }
+
+  lifecycle {
+    ignore_changes = [
+      desired_count,
+    ]
   }
 }
 
@@ -475,12 +488,24 @@ resource "aws_ecs_service" "short_service_ecs" {
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.short_podcast_task.arn
   desired_count   = 0
-  launch_type     = "EC2"
+
   network_configuration {
     subnets         = var.private_subnet_ids
     assign_public_ip = false
     security_groups = [aws_security_group.ecs_tasks_sg.id] 
   }
+
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.ec2_capacity.name
+    weight            = 1
+  }
+
+  lifecycle {
+    ignore_changes = [
+      desired_count,
+    ]
+  }
+
 }
 
 resource "aws_ecs_service" "medium_service_ecs" {
@@ -488,12 +513,25 @@ resource "aws_ecs_service" "medium_service_ecs" {
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.medium_podcast_task.arn
   desired_count   = 0
-  launch_type     = "EC2"
+
+
   network_configuration {
     subnets         = var.private_subnet_ids
     assign_public_ip = false
     security_groups = [aws_security_group.ecs_tasks_sg.id] 
   }
+
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.ec2_capacity.name
+    weight            = 1
+  }
+
+  lifecycle {
+    ignore_changes = [
+      desired_count,
+    ]
+  }
+
 }
 
 resource "aws_ecs_service" "large_service_ecs" {
@@ -501,11 +539,43 @@ resource "aws_ecs_service" "large_service_ecs" {
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.large_podcast_task.arn
   desired_count   = 0
-  launch_type     = "EC2"
+
+
   network_configuration {
     subnets         = var.private_subnet_ids
     assign_public_ip = false
     security_groups = [aws_security_group.ecs_tasks_sg.id] 
+  }
+
+  capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.ec2_capacity.name
+    weight            = 1
+  }
+
+  lifecycle {
+    ignore_changes = [
+      desired_count,
+    ]
+  }
+
+}
+
+resource "aws_ecs_capacity_provider" "ec2_capacity" {
+  name = "${var.env}-ec2-capacity"
+
+  auto_scaling_group_provider {
+    auto_scaling_group_arn = aws_autoscaling_group.ecs.arn
+
+    managed_scaling {
+      status          = "ENABLED"
+      target_capacity = 100
+    }
+
+    managed_termination_protection = "DISABLED"
+  }
+
+  tags = {
+    Environment = var.env
   }
 }
 
@@ -532,5 +602,18 @@ resource "aws_security_group" "ecs_tasks_sg" {
 
   tags = {
     Name = "ecs-tasks-sg"
+  }
+}
+
+resource "aws_ecs_cluster_capacity_providers" "voice_clone_cluster" {
+  cluster_name = aws_ecs_cluster.cluster.name
+
+  capacity_providers = [
+    aws_ecs_capacity_provider.ec2_capacity.name,
+  ]
+
+  default_capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.ec2_capacity.name
+    weight            = 1
   }
 }

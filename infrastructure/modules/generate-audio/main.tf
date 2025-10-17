@@ -34,30 +34,6 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
-# Custom inline policy for Lambda to send messages to SQS
-resource "aws_iam_policy" "lambda_sqs_policy" {
-  name        = "lambda-sqs-send-policy-${var.env}"
-  description = "Allow Lambda to send messages to SQS queue"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "sqs:SendMessage"
-        ],
-        Resource = var.sqs_queue_arn
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_sqs_attach" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.lambda_sqs_policy.arn
-}
-
 # Policy for Batch job submission
 resource "aws_iam_policy" "batch_submit_policy" {
   name        = "batch-submit-policy-${var.env}"
@@ -105,7 +81,9 @@ resource "aws_lambda_function" "gen_audio_handler" {
   environment {
     variables = {
       BUCKET_NAME    = var.bucket_name
-      SQS_REC_QUEUE_URL  = var.sqs_queue_url
+      JOB_QUEUE = var.batch_job_queue
+      FREE_JOB_QUEUE = var.free_batch_job_queue
+      JOB_DEFINITION = var.job_definition
     }
   }
 }

@@ -16,7 +16,7 @@ variable "account" {
 
 locals {
   f5tts_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/f5tts:latest"
-  sqs_listener_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/sqs-listener:latest"
+  sqs_listener_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/batch-job:latest"
   generate_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/gen-audio-handler:latest"
   clone_service_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/lambda-voice-clone:latest"
   list_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/list-audio-handler:latest"
@@ -112,27 +112,17 @@ variable "origin_domain_name" {
   type        = string
 }
 
-variable "free_service_ecs" {
+variable "free_batch_job_queue" {
   type        = string
-  default = "free-plan-service"
+  default = "free-batch-job-queue"
 }
 
-variable "short_service_ecs" {
+variable "batch_job_queue" {
   type        = string
-  default = "short-podcasts-service"
+  default = "batch-job-queue"
 }
 
-variable "medium_service_ecs" {
-  type        = string  
-  default = "medium-podcasts-service"
-}
-
-variable "large_service_ecs" {
-  type        = string  
-  default = "large-podcasts-service"
-}
-
-variable "asg_name" {
-  type        = string  
-  default = "f5tts-asg"
+variable "job_definition" {
+  type        = string
+  default = "job-gpu"
 }

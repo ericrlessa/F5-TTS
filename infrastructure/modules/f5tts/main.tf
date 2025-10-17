@@ -60,6 +60,39 @@ resource "aws_iam_role_policy_attachment" "aws_batch_service_role" {
 }
 
 # Compute Environment
+resource "aws_batch_compute_environment" "free_batch_compute_env" {
+  compute_environment_name = "free-batch-compute-env-${var.env}"
+  service_role             = aws_iam_role.aws_batch_service_role.arn
+  type                     = "MANAGED"
+
+  compute_resources {
+    type               = "EC2"
+    allocation_strategy = "BEST_FIT_PROGRESSIVE"
+
+    instance_role    = aws_iam_instance_profile.ecs_instance_profile.arn
+    instance_type    = ["g5.xlarge"]
+    max_vcpus        = 12
+    min_vcpus        = 0
+    desired_vcpus    = 0
+
+    subnets           = var.private_subnet_ids
+    security_group_ids = [aws_security_group.batch_compute_sg.id] 
+
+    
+    launch_template {
+      launch_template_name = aws_launch_template.free_batch_launch_template.name
+    }
+
+    # Optional: Add tags for better resource management
+    tags = {
+      Environment = var.env
+      ManagedBy   = "terraform"
+    }
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.aws_batch_service_role]
+}
+
 resource "aws_batch_compute_environment" "batch_compute_env" {
   compute_environment_name = "batch-compute-env-${var.env}"
   service_role             = aws_iam_role.aws_batch_service_role.arn
@@ -67,7 +100,7 @@ resource "aws_batch_compute_environment" "batch_compute_env" {
 
   compute_resources {
     type               = "EC2"
-    allocation_strategy = "BEST_FIT"
+    allocation_strategy = "BEST_FIT_PROGRESSIVE"
 
     instance_role    = aws_iam_instance_profile.ecs_instance_profile.arn
     instance_type    = ["g5.xlarge"]
@@ -110,6 +143,23 @@ resource "aws_launch_template" "batch_launch_template" {
   image_id = data.aws_ami.ecs_gpu_optimized.id
 }
 
+resource "aws_launch_template" "free_batch_launch_template" {
+  name = "free-batch-launch-template-${var.env}"
+
+  block_device_mappings {
+    device_name = "/dev/xvda"  # Root volume
+
+    ebs {
+      volume_size = 40  # GB - increase as needed
+      volume_type = "gp3"
+      delete_on_termination = true
+    }
+  }
+
+  # Optional: Specify GPU-optimized AMI
+  image_id = data.aws_ami.ecs_gpu_optimized.id
+}
+
 data "aws_ami" "ecs_gpu_optimized" {
   most_recent = true
   owners      = ["amazon"]
@@ -137,16 +187,28 @@ resource "aws_security_group" "batch_compute_sg" {
 }
 
 # Job Queue
-resource "aws_batch_job_queue" "batch_queue" {
-  name     = "batch-job-queue-${var.env}"
+resource "aws_batch_job_queue" "free_batch_job_queue" {
+  name     = var.free_batch_job_queue
   state    = "ENABLED"
   priority = 1
+  
+  compute_environment_order {
+    compute_environment = aws_batch_compute_environment.free_batch_compute_env.arn
+    order               = 1
+  }
+}
+
+resource "aws_batch_job_queue" "batch_job_queue" {
+  name     = var.batch_job_queue
+  state    = "ENABLED"
+  priority = 2
   
   compute_environment_order {
     compute_environment = aws_batch_compute_environment.batch_compute_env.arn
     order               = 1
   }
 }
+
 
 # IAM Role for Batch Jobs
 resource "aws_iam_role" "batch_job_role" {
@@ -209,7 +271,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
 
 # Job Definition
 resource "aws_batch_job_definition" "simple_job" {
-  name = "simple-batch-job-${var.env}"
+  name = "${var.job_definition}"
   type = "container"
 
   platform_capabilities = ["EC2"]

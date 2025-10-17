@@ -38,6 +38,10 @@ module "f5tts" {
   bucket_name = var.bucket_name
   vpc_id = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
+
+  batch_job_queue = var.batch_job_queue
+  free_batch_job_queue = var.free_batch_job_queue
+  job_definition = var.job_definition
   
   env = var.env
   
@@ -57,8 +61,11 @@ module "generate_audio" {
   bucket_name = var.bucket_name
   generate_audio_handler_image = local.generate_audio_handler_image
   generate_audio_function_name = var.generate_audio_function_name
-  sqs_queue_arn = module.gen_audio_queue.sqs_queue_arn
-  sqs_queue_url = module.gen_audio_queue.sqs_queue_url
+
+  free_batch_job_queue = var.free_batch_job_queue
+  batch_job_queue = var.batch_job_queue
+  job_definition = var.job_definition
+  
   env = var.env
 }
 

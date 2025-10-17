@@ -19,6 +19,9 @@ logger.setLevel(logging.INFO)
 
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
+JOB_QUEUE = os.environ.get("JOB_QUEUE")
+FREE_JOB_QUEUE = os.environ.get("FREE_JOB_QUEUE")
+JOB_DEFINITION = os.environ.get("JOB_DEFINITION")
 
 s3 = boto3.client("s3", region_name="ca-central-1")
 batch = boto3.client('batch', region_name='ca-central-1')
@@ -37,8 +40,8 @@ def submit_batch_job(encoded_message, estimated_duration):
     job_name = f"job-{uuid.uuid4().hex[:8]}"
     response = batch.submit_job(
         jobName=job_name,
-        jobQueue="batch-job-queue-dev",
-        jobDefinition="simple-batch-job-dev",
+        jobQueue=JOB_QUEUE,
+        jobDefinition=JOB_DEFINITION,
         containerOverrides={
             'command': [
             'serve',

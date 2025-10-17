@@ -9,7 +9,7 @@ bash ./generate-audio/build_and_push.sh ${region}
 
 bash ./list-audio/build_and_push.sh ${region}
 
-bash ./sqs-listener/build_and_push.sh ${region}
+bash ./batch-job/build_and_push.sh ${region}
 
 bash ./processing-result-listener/build_and_push.sh ${region}
 

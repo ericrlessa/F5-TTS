@@ -8,6 +8,7 @@ import uuid
 import json
 from mangum import Mangum
 import logging
+import base64
 
 # Setup
 app = FastAPI()
@@ -17,11 +18,10 @@ logger = logging.getLogger("uvicorn")
 logger.setLevel(logging.INFO)
 
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
-QUEUE_URL = os.environ.get("SQS_REC_QUEUE_URL")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 
-sqs = boto3.client("sqs", region_name=REGION_NAME)
 s3 = boto3.client("s3", region_name="ca-central-1")
+batch = boto3.client('batch', region_name='ca-central-1')
 
 def file_exists(bucket_name: str, file_key: str) -> bool:
     try:
@@ -32,6 +32,23 @@ def file_exists(bucket_name: str, file_key: str) -> bool:
             return False
         else:
             raise
+
+def submit_batch_job(encoded_message):
+    job_name = f"job-{uuid.uuid4().hex[:8]}"
+    response = batch.submit_job(
+        jobName=job_name,
+        jobQueue="batch-job-queue-dev",
+        jobDefinition="simple-batch-job-dev",
+        containerOverrides={
+            'command': [
+            'serve',
+            '--message-body', encoded_message
+            ]
+        }
+    )
+    
+    print(f"Job submitted successfully: {response['jobId']}")
+    return response
 
 @app.post("/generate-audio")
 async def generate_audio_multiple_voices(
@@ -90,10 +107,9 @@ async def generate_audio_multiple_voices(
             "estimated_duration": estimated_duration
         }
 
-        sqs.send_message(
-            QueueUrl=QUEUE_URL,
-            MessageBody=json.dumps(message_body)
-        )
+        encoded_message = base64.b64encode(json.dumps(message_body).encode()).decode()
+
+        submit_batch_job(encoded_message)
 
         logger.info(f"✅ Uploaded text to S3: {s3_key_gen_txt}")
         logger.info(f"📤 Sent SQS message: {message_body}")

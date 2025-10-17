@@ -14,10 +14,6 @@ variable "ecs_instance_type" {
   type=string 
 }
 
-variable "ecs_cluster_name" { 
-  type=string 
-}
-
 variable "ecs_ami_ssm_param" {
   type = string
 }
@@ -43,64 +39,4 @@ variable "private_subnet_ids" {
 variable "env" {
   description = "environment"
   type        = string  
-}
-
-variable "free_service_ecs" {
-  type        = string  
-}
-
-variable "short_service_ecs" {
-  type        = string  
-}
-
-variable "medium_service_ecs" {
-  type        = string  
-}
-
-variable "large_service_ecs" {
-  type        = string  
-}
-
-variable "sqs_short_podcasts_url" {
-   type        = string  
-}
-
-variable "sqs_medium_podcasts_url" {
-  type        = string  
-}
-
-variable "sqs_large_podcasts_url" {
-  type        = string  
-}
-
-variable "sqs_free_podcasts_url" {
-  type        = string  
-}
-
-variable "sqs_short_podcasts_arn" {
-   type        = string  
-}
-
-variable "sqs_medium_podcasts_arn" {
-  type        = string  
-}
-
-variable "sqs_large_podcasts_arn" {
-  type        = string  
-}
-
-variable "sqs_free_podcasts_arn" {
-  type        = string  
-}
-
-variable "asg_name" { 
-  type        = string  
-}
-
-variable "sqs_end_idle_task_url" {
-  type        = string
-}
-
-variable "sqs_end_idle_task_arn" {
-  type        = string
 }

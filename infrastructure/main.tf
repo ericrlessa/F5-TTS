@@ -32,7 +32,6 @@ module "f5tts" {
   sqs_result_queue_arn = module.gen_audio_queue.sqs_queue_result_arn
 
   ecs_instance_type = var.ecs_instance_type
-  ecs_cluster_name = var.ecs_cluster_name
   ecs_ami_ssm_param = var.ecs_ami_ssm_param
   f5tts_image = local.f5tts_image
   sqs_listener_image = local.sqs_listener_image
@@ -42,25 +41,6 @@ module "f5tts" {
   
   env = var.env
   
-  free_service_ecs = var.free_service_ecs
-  short_service_ecs = var.short_service_ecs
-  medium_service_ecs = var.medium_service_ecs
-  large_service_ecs = var.large_service_ecs
-
-  sqs_free_podcasts_arn = module.gen_audio_queue.sqs_free_podcasts_arn
-  sqs_short_podcasts_arn = module.gen_audio_queue.sqs_short_podcasts_arn
-  sqs_medium_podcasts_arn = module.gen_audio_queue.sqs_medium_podcasts_arn
-  sqs_large_podcasts_arn = module.gen_audio_queue.sqs_large_podcasts_arn
-  
-  sqs_free_podcasts_url = module.gen_audio_queue.sqs_free_podcasts_url
-  sqs_short_podcasts_url = module.gen_audio_queue.sqs_short_podcasts_url
-  sqs_medium_podcasts_url = module.gen_audio_queue.sqs_medium_podcasts_url
-  sqs_large_podcasts_url = module.gen_audio_queue.sqs_large_podcasts_url
-  
-  asg_name = var.asg_name
-
-  sqs_end_idle_task_url = module.gen_audio_queue.sqs_end_idle_task_url
-  sqs_end_idle_task_arn = module.gen_audio_queue.sqs_end_idle_task_arn
 }
 
 module "clone_service" {
@@ -134,45 +114,3 @@ module "cloudfront_domain" {
   domain_name = var.domain_name
   origin_id = var.origin_id
 }
-
-module "scaling_controller" {
-  source = "./modules/scaling-controller"
-  env = var.env
-  
-  function_name = var.scaling_conroller_function_name
-  image_name =  local.scaling_controller_image
-  ecs_cluster_name = var.ecs_cluster_name
-  
-  podcast_queue_arn = module.gen_audio_queue.sqs_queue_arn
-  podcast_queue_url = module.gen_audio_queue.sqs_queue_url
-
-  short_podcast_queue_arn = module.gen_audio_queue.sqs_short_podcasts_arn
-  short_podcast_queue_url = module.gen_audio_queue.sqs_short_podcasts_url
-  short_service_ecs = var.short_service_ecs
-
-  medium_podcast_queue_arn = module.gen_audio_queue.sqs_medium_podcasts_arn
-  medium_podcast_queue_url = module.gen_audio_queue.sqs_medium_podcasts_url
-  medium_service_ecs = var.medium_service_ecs
-
-  large_podcast_queue_arn = module.gen_audio_queue.sqs_large_podcasts_arn
-  large_podcast_queue_url = module.gen_audio_queue.sqs_large_podcasts_url
-  large_service_ecs = var.large_service_ecs
-  
-  free_podcast_queue_arn = module.gen_audio_queue.sqs_free_podcasts_arn
-  free_podcast_queue_url = module.gen_audio_queue.sqs_free_podcasts_url
-  free_service_ecs = var.free_service_ecs
-
-  asg_name = var.asg_name
-}
-
-module "scaling_down_controller" {
-  source = "./modules/scaling-down-controller"
-  env = var.env
-  asg_name = var.asg_name
-  end_idle_task_queue_arn = module.gen_audio_queue.sqs_end_idle_task_arn
-  image =  local.scaling_down_controller_image
-  function_name = var.scaling_down_controller_function_name
-}
-
-
-

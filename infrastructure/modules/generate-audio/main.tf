@@ -58,6 +58,42 @@ resource "aws_iam_role_policy_attachment" "lambda_sqs_attach" {
   policy_arn = aws_iam_policy.lambda_sqs_policy.arn
 }
 
+# Policy for Batch job submission
+resource "aws_iam_policy" "batch_submit_policy" {
+  name        = "batch-submit-policy-${var.env}"
+  description = "Policy for Lambda to submit Batch jobs"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "batch:SubmitJob",
+          "batch:DescribeJobs",
+          "batch:ListJobs"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "batch:DescribeJobQueues",
+          "batch:DescribeJobDefinitions"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach policy to role
+resource "aws_iam_role_policy_attachment" "batch_submit" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.batch_submit_policy.arn
+}
+
+
 # ================= Lambda Function
 resource "aws_lambda_function" "gen_audio_handler" {
   function_name = var.generate_audio_function_name

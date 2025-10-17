@@ -3,14 +3,14 @@
 import boto3
 import requests
 import json
-import time
 import os
-from io import BytesIO
 import traceback
 from predictor import inference
 import flask
 import threading
 import time
+import argparse
+import base64
 
 import logging
 
@@ -19,17 +19,7 @@ logger = logging.getLogger(__name__)
 
 # 🔧 Config
 QUEUE_URL_RESULT = os.environ["SQS_SND_QUEUE_URL"]
-QUEUE_URL = os.environ["SQS_REC_QUEUE_URL"]
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
-WAIT_TIME_SECONDS = int(os.getenv("WAIT_TIME_SECONDS", 10))
-MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", 1))
-VISIBILITY_TIMEOUT = int(os.getenv("VISIBILITY_TIMEOUT", 30))
-
-QUEUE_END_IDLE_TASK_URL = os.environ["SQS_END_IDLE_TASK_QUEUE_URL"]
-
-ECS_CLUSTER_NAME = os.environ.get('ECS_CLUSTER')
-SERVICE_NAME = os.environ.get('SERVICE_NAME')
-
 
 # AWS clients
 sqs = boto3.client("sqs", region_name=REGION_NAME)
@@ -45,128 +35,40 @@ def ping():
         mimetype="application/json"
     )
 
-def get_ecs_task_arn():
-    metadata_uri = os.environ.get('ECS_CONTAINER_METADATA_URI')
-    if not metadata_uri:
-        return None
-
-    try:
-        response = requests.get(f"{metadata_uri}/task")
-        response.raise_for_status()
-        metadata = response.json()
-        return metadata.get('TaskARN')
-    except Exception as e:
-        logger.error(f"Failed to get ECS task ARN: {e}")
-        return None
-
-def get_ec2_instance_id():
-    try:
-        # Get IMDSv2 token (required in newer AWS regions)
-        token_url = "http://169.254.169.254/latest/api/token"
-        headers = {'X-aws-ec2-metadata-token-ttl-seconds': '21600'}
-        token = requests.put(token_url, headers=headers, timeout=2).text
-
-        # Fetch instance ID
-        metadata_url = "http://169.254.169.254/latest/meta-data/instance-id"
-        headers = {'X-aws-ec2-metadata-token': token}
-        instance_id = requests.get(metadata_url, headers=headers, timeout=2).text
-        
-        return instance_id
-    except Exception as e:
-        print(f"Failed to get EC2 instance ID: {e}")
-        return None
-
 def send_result_message(message):
     sqs.send_message(
             QueueUrl=QUEUE_URL_RESULT,
             MessageBody=json.dumps(message)
     )
 
-def send_end_idle_task():
-    sqs.send_message(
-        QueueUrl=QUEUE_END_IDLE_TASK_URL,
-        MessageBody=json.dumps({
-            "ecs_task_arn": get_ecs_task_arn(),
-            "ecs_service_name": SERVICE_NAME,
-            "ecs_cluster_name": ECS_CLUSTER_NAME
-        })
-    )
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--message-body', required=True)
+    args = parser.parse_args()
 
-def process_message(message_body, receipt_handle):
     try:
+        message_body = json.loads(base64.b64decode(args.message_body).decode())
+        print(f"Processing job: {message_body}")
+        
         logger.info(f"📤 Starting inference...")
         result = inference(message_body)
         logger.info(f"✅ Result: {result}")
 
-        return result
+        job_id = os.environ.get('AWS_BATCH_JOB_ID')
+
+        if result:
+            merge_rec_result = message_body | result | {"instance_id": job_id}
+            logger.info(f"📤 Sending JSON result to the queue: {merge_rec_result}")
+            send_result_message(merge_rec_result)
+            logger.info(f"✅ JSON result written to the queue")
+        else:
+            logger.info("⚠️  Message left for retry")
+        
     except Exception as e:
-        logger.error(f"❌ Error processing message: {e}")
-        logger.debug(traceback.format_exc())
-        sqs.change_message_visibility(
-            QueueUrl=QUEUE_URL,
-            ReceiptHandle=receipt_handle,
-            VisibilityTimeout=120
-        )
-        logger.info("Visibility timeout set to 120 seconds to the message be available for retry")
+        logger.error(f"❌ Batch job failed: {e}")
+        logger.error(traceback.format_exc())
         raise
 
-def set_processing_time_to_avoid_scaling_conflict(estimated_duration, receipt_handle):
-    sqs.change_message_visibility(
-        QueueUrl=QUEUE_URL,
-        ReceiptHandle=receipt_handle,
-        VisibilityTimeout=estimated_duration
-    )
-
-def poll_queue():
-    logger.info("🚀 Listening for messages...")  
-
-    start_idle_time = None
-
-    while True:
-        try:
-            response = sqs.receive_message(
-                QueueUrl=QUEUE_URL,
-                MaxNumberOfMessages=MAX_MESSAGES,
-                WaitTimeSeconds=WAIT_TIME_SECONDS,
-                VisibilityTimeout=VISIBILITY_TIMEOUT,
-            )
-
-            messages = response.get("Messages", [])
-            
-            if messages:
-                start_idle_time = None
-            else:
-                if not start_idle_time:
-                    start_idle_time = time.time()
-                idle_time = time.time() - start_idle_time
-                if idle_time >= 300:
-                    send_end_idle_task()
-                    logger.info(f"Ending processing after waiting for new messages")
-                    break
-                time.sleep(2)
-                continue
-
-            for msg in messages:
-                receipt_handle = msg["ReceiptHandle"]
-                body = json.loads(msg["Body"])
-
-                set_processing_time_to_avoid_scaling_conflict(body.get("estimated_duration"), receipt_handle)
-
-                result = process_message(body, receipt_handle)
-
-                if result:
-                    merge_rec_result = body | result | {"instance_id": get_ec2_instance_id()}
-                    logger.info(f"📤 Sending JSON result to the queue: {merge_rec_result}")
-                    send_result_message(merge_rec_result)
-                    logger.info(f"✅ JSON result written to the queue")
-                    sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt_handle)
-                    logger.info("🗑️  Deleted message received")
-                else:
-                    logger.info("⚠️  Message left for retry")
-
-        except Exception as e:
-            logger.error(f"Error caught: {e}")
-
 if __name__ == "__main__":
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()
-    poll_queue()
+  #  threading.Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()
+    main()

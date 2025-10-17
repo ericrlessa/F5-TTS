@@ -76,6 +76,8 @@ resource "aws_batch_compute_environment" "batch_compute_env" {
     desired_vcpus    = 0
 
     subnets           = var.private_subnet_ids
+    security_group_ids = [aws_security_group.batch_compute_sg.id] 
+
     
     # Optional: Add tags for better resource management
     tags = {
@@ -85,6 +87,22 @@ resource "aws_batch_compute_environment" "batch_compute_env" {
   }
 
   depends_on = [aws_iam_role_policy_attachment.aws_batch_service_role]
+}
+
+resource "aws_security_group" "batch_compute_sg" {
+  name        = "batch-compute-sg-${var.env}"
+  description = "Security group for AWS Batch compute environment in private subnet"
+  vpc_id      = var.vpc_id
+
+  # Outbound internet access for NAT gateway (required for ECR, Docker Hub, etc.)
+  egress {
+    description = "Outbound internet access via NAT gateway"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
 }
 
 # Job Queue

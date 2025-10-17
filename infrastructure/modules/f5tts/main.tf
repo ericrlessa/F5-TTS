@@ -230,3 +230,62 @@ resource "aws_batch_job_definition" "simple_job" {
     aws_iam_role_policy_attachment.ecs_task_execution
   ]
 }
+
+# S3 Read Policy for the job role
+resource "aws_iam_policy" "s3_read_access" {
+  name        = "s3-read-access-${var.env}"
+  description = "S3 read access for Batch jobs"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:GetObjectVersion",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.bucket_name}",
+          "arn:aws:s3:::${var.bucket_name}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach policy to role
+resource "aws_iam_role_policy_attachment" "batch_job_s3_access" {
+  role       = aws_iam_role.batch_job_role.name
+  policy_arn = aws_iam_policy.s3_read_access.arn
+}
+
+# IAM Policy for SQS access
+resource "aws_iam_policy" "sqs_write_access" {
+  name        = "sqs-write-access-${var.env}"
+  description = "SQS write access for Batch jobs"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:SendMessageBatch",
+          "sqs:GetQueueUrl",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = [
+          var.sqs_result_queue_arn
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "batch_job_sqs_access" {
+  role       = aws_iam_role.batch_job_role.name
+  policy_arn = aws_iam_policy.sqs_write_access.arn
+}

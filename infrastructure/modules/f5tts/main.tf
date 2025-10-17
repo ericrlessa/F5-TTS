@@ -196,6 +196,10 @@ resource "aws_batch_job_definition" "simple_job" {
       {
         type  = "MEMORY"
         value = "14336"  # 14GB
+      },
+      {
+        type  = "GPU"
+        value = "1"
       }
     ]
     environment = [

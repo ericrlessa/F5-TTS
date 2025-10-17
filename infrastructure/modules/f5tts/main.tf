@@ -198,6 +198,12 @@ resource "aws_batch_job_definition" "simple_job" {
         value = "14336"  # 14GB
       }
     ]
+    environment = [
+      {
+        name  = "SQS_SND_QUEUE_URL"
+        value = var.sqs_result_queue_url
+      }
+    ]
     # Log configuration for CloudWatch
     logConfiguration = {
       logDriver = "awslogs"

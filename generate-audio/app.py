@@ -33,7 +33,7 @@ def file_exists(bucket_name: str, file_key: str) -> bool:
         else:
             raise
 
-def submit_batch_job(encoded_message):
+def submit_batch_job(encoded_message, estimated_duration):
     job_name = f"job-{uuid.uuid4().hex[:8]}"
     response = batch.submit_job(
         jobName=job_name,
@@ -44,6 +44,9 @@ def submit_batch_job(encoded_message):
             'serve',
             '--message-body', encoded_message
             ]
+        },
+        timeout={
+            'attemptDurationSeconds': (estimated_duration + 60)
         }
     )
     
@@ -109,7 +112,7 @@ async def generate_audio_multiple_voices(
 
         encoded_message = base64.b64encode(json.dumps(message_body).encode()).decode()
 
-        submit_batch_job(encoded_message)
+        submit_batch_job(encoded_message, estimated_duration)
 
         logger.info(f"✅ Uploaded text to S3: {s3_key_gen_txt}")
         logger.info(f"📤 Sent SQS message: {message_body}")

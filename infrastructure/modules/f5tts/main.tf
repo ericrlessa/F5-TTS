@@ -79,6 +79,10 @@ resource "aws_batch_compute_environment" "batch_compute_env" {
     security_group_ids = [aws_security_group.batch_compute_sg.id] 
 
     
+    launch_template {
+      launch_template_name = aws_launch_template.batch_launch_template.name
+    }
+
     # Optional: Add tags for better resource management
     tags = {
       Environment = var.env
@@ -87,6 +91,33 @@ resource "aws_batch_compute_environment" "batch_compute_env" {
   }
 
   depends_on = [aws_iam_role_policy_attachment.aws_batch_service_role]
+}
+
+resource "aws_launch_template" "batch_launch_template" {
+  name = "batch-launch-template-${var.env}"
+
+  block_device_mappings {
+    device_name = "/dev/xvda"  # Root volume
+
+    ebs {
+      volume_size = 100  # GB - increase as needed
+      volume_type = "gp3"
+      delete_on_termination = true
+    }
+  }
+
+  # Optional: Specify GPU-optimized AMI
+  image_id = data.aws_ami.ecs_gpu_optimized.id
+}
+
+data "aws_ami" "ecs_gpu_optimized" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-ecs-gpu-hvm-2.0.*-x86_64-ebs"]
+  }
 }
 
 resource "aws_security_group" "batch_compute_sg" {

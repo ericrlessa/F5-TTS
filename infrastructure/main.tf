@@ -32,7 +32,6 @@ module "f5tts" {
   sqs_result_queue_arn = module.gen_audio_queue.sqs_queue_result_arn
 
   ecs_instance_type = var.ecs_instance_type
-  ecs_ami_ssm_param = var.ecs_ami_ssm_param
   f5tts_image = local.f5tts_image
   sqs_listener_image = local.sqs_listener_image
   bucket_name = var.bucket_name
@@ -42,6 +41,8 @@ module "f5tts" {
   batch_job_queue = var.batch_job_queue
   free_batch_job_queue = var.free_batch_job_queue
   job_definition = var.job_definition
+
+  ami_id = module.batch_image_builder.custom_ami_id
   
   env = var.env
   
@@ -120,4 +121,29 @@ module "cloudfront_domain" {
   origin_domain_name = var.origin_domain_name
   domain_name = var.domain_name
   origin_id = var.origin_id
+}
+
+module "batch_image_builder" {
+  source = "./modules/image-builder"
+
+  env                      = var.env
+  f5tts_image              = local.f5tts_image
+  image_builder_logs_bucket = var.image_builder_logs_bucket
+  base_ami_id              = data.aws_ami.ecs_gpu_optimized.id
+  root_volume_size         = 100
+
+  vpc_id = module.vpc.vpc_id
+  public_subnet_ids = module.vpc.public_subnet_ids
+  region = var.region
+
+}
+
+data "aws_ami" "ecs_gpu_optimized" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-ecs-gpu-hvm-2.0.*-x86_64-ebs"]
+  }
 }

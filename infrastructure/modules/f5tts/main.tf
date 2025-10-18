@@ -81,13 +81,9 @@ resource "aws_batch_compute_environment" "free_batch_compute_env" {
     
     launch_template {
       launch_template_name = aws_launch_template.free_batch_launch_template.name
+      version            = "$Latest"
     }
 
-    # Optional: Add tags for better resource management
-    tags = {
-      Environment = var.env
-      ManagedBy   = "terraform"
-    }
   }
 
   depends_on = [aws_iam_role_policy_attachment.aws_batch_service_role]
@@ -114,61 +110,51 @@ resource "aws_batch_compute_environment" "batch_compute_env" {
     
     launch_template {
       launch_template_name = aws_launch_template.batch_launch_template.name
+      version            = "$Latest"
     }
 
-    # Optional: Add tags for better resource management
-    tags = {
-      Environment = var.env
-      ManagedBy   = "terraform"
-    }
   }
 
   depends_on = [aws_iam_role_policy_attachment.aws_batch_service_role]
 }
 
 resource "aws_launch_template" "batch_launch_template" {
-  name = "batch-launch-template-${var.env}"
+ name = "batch-launch-template-${var.env}"
 
   block_device_mappings {
-    device_name = "/dev/xvda"  # Root volume
-
+    device_name = "/dev/xvda"
     ebs {
-      volume_size = 100  # GB - increase as needed
+      volume_size = 100
       volume_type = "gp3"
       delete_on_termination = true
     }
   }
 
-  # Optional: Specify GPU-optimized AMI
-  image_id = data.aws_ami.ecs_gpu_optimized.id
+  # Use custom AMI if available, otherwise fallback
+  image_id = var.ami_id
+
+  update_default_version = true
 }
 
 resource "aws_launch_template" "free_batch_launch_template" {
   name = "free-batch-launch-template-${var.env}"
 
   block_device_mappings {
-    device_name = "/dev/xvda"  # Root volume
-
+    device_name = "/dev/xvda"
     ebs {
-      volume_size = 40  # GB - increase as needed
+      volume_size = 40
       volume_type = "gp3"
       delete_on_termination = true
     }
   }
 
-  # Optional: Specify GPU-optimized AMI
-  image_id = data.aws_ami.ecs_gpu_optimized.id
+  # Use custom AMI if available, otherwise fallback
+  image_id = var.ami_id
+
+  update_default_version = true
 }
 
-data "aws_ami" "ecs_gpu_optimized" {
-  most_recent = true
-  owners      = ["amazon"]
 
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-ecs-gpu-hvm-2.0.*-x86_64-ebs"]
-  }
-}
 
 resource "aws_security_group" "batch_compute_sg" {
   name        = "batch-compute-sg-${var.env}"

@@ -32,6 +32,11 @@ variable "bucket_name" {
   default     = "geniuspod-podcast"
 }
 
+variable "image_builder_logs_bucket" {
+  type        = string
+  default     = "geniuspod-podcast-image-builder-logs"
+}
+
 variable "sqs_queue_name" { 
   type=string 
   default="generate-audio-events"
@@ -45,11 +50,6 @@ variable "ecs_instance_type" {
 variable "ecs_cluster_name" { 
   type=string 
   default="voice-clone-cluster" 
-}
-
-variable "ecs_ami_ssm_param" {
-  type = string
-  default = "/aws/service/ecs/optimized-ami/amazon-linux-2/gpu/recommended/image_id"
 }
 
 variable "scaling_conroller_function_name" {

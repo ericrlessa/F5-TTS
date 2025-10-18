@@ -14,11 +14,11 @@ variable "ecs_instance_type" {
   type=string 
 }
 
-variable "ecs_ami_ssm_param" {
+variable "f5tts_image" {
   type = string
 }
 
-variable "f5tts_image" {
+variable "ami_id" {
   type = string
 }
 

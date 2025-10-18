@@ -44,3 +44,11 @@ output "cloudfront_distribution_id" {
 output "certificate_arn" {
   value = module.cloudfront_domain.certificate_arn
 }
+
+output "debug_ami" {
+  value = module.f5tts.debug_ami
+}
+
+output "custom_ami" {
+  value = module.batch_image_builder.custom_ami_id
+}

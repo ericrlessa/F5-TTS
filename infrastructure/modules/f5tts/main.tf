@@ -71,7 +71,7 @@ resource "aws_batch_compute_environment" "free_batch_compute_env" {
 
     instance_role    = aws_iam_instance_profile.ecs_instance_profile.arn
     instance_type    = ["g5.xlarge"]
-    max_vcpus        = 12
+    max_vcpus        = 40
     min_vcpus        = 0
     desired_vcpus    = 0
 

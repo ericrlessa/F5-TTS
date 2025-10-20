@@ -4,7 +4,6 @@ from fastapi.responses import JSONResponse
 import boto3
 from botocore.exceptions import ClientError
 import os
-import uuid
 import json
 from mangum import Mangum
 import logging
@@ -36,11 +35,16 @@ def file_exists(bucket_name: str, file_key: str) -> bool:
         else:
             raise
 
-def submit_batch_job(encoded_message, estimated_duration):
-    job_name = f"job-{uuid.uuid4().hex[:8]}"
+def submit_batch_job(encoded_message, estimated_duration, plan, episode):
+    job_name = f"episode-{episode}"
+
+    queue = JOB_QUEUE
+    if plan == "Free":
+        queue = FREE_JOB_QUEUE
+
     response = batch.submit_job(
         jobName=job_name,
-        jobQueue=JOB_QUEUE,
+        jobQueue=queue,
         jobDefinition=JOB_DEFINITION,
         containerOverrides={
             'command': [
@@ -65,6 +69,7 @@ async def generate_audio_multiple_voices(
     extracted_content: str = Form(...),
     models: str = Form(...),
     estimated_duration: int = Form(...),
+    plan: str = Form(...),
 ):
     try:
 
@@ -115,7 +120,7 @@ async def generate_audio_multiple_voices(
 
         encoded_message = base64.b64encode(json.dumps(message_body).encode()).decode()
 
-        submit_batch_job(encoded_message, estimated_duration)
+        submit_batch_job(encoded_message, estimated_duration, plan, episode)
 
         logger.info(f"✅ Uploaded text to S3: {s3_key_gen_txt}")
         logger.info(f"📤 Sent SQS message: {message_body}")

@@ -80,7 +80,7 @@ resource "aws_batch_compute_environment" "free_batch_compute_env" {
 
     
     launch_template {
-      launch_template_name = aws_launch_template.free_batch_launch_template.name
+      launch_template_name = aws_launch_template.batch_launch_template.name
       version            = "$Latest"
     }
 
@@ -135,26 +135,6 @@ resource "aws_launch_template" "batch_launch_template" {
 
   update_default_version = true
 }
-
-resource "aws_launch_template" "free_batch_launch_template" {
-  name = "free-batch-launch-template-${var.env}"
-
-  block_device_mappings {
-    device_name = "/dev/xvda"
-    ebs {
-      volume_size = 40
-      volume_type = "gp3"
-      delete_on_termination = true
-    }
-  }
-
-  # Use custom AMI if available, otherwise fallback
-  image_id = var.ami_id
-
-  update_default_version = true
-}
-
-
 
 resource "aws_security_group" "batch_compute_sg" {
   name        = "batch-compute-sg-${var.env}"

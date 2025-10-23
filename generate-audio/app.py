@@ -53,7 +53,7 @@ def submit_batch_job(encoded_message, estimated_duration, plan, episode):
             ]
         },
         timeout={
-            'attemptDurationSeconds': (estimated_duration + 60)
+            'attemptDurationSeconds': (estimated_duration + 180)
         }
     )
     

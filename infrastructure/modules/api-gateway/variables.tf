@@ -18,6 +18,14 @@ variable "generate_audio_function_name" {
   type = string
 }
 
+variable "delete_voice_function_name" {
+  type = string
+}
+
+variable "delete_voice_integration_uri" {
+  type = string
+}
+
 variable "clone_service_function_name" {
   type = string
 }

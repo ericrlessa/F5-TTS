@@ -92,6 +92,14 @@ resource "aws_api_gateway_method" "voice_method" {
   api_key_required = true
 }
 
+resource "aws_api_gateway_method" "voice_method_delete" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.voice.id
+  http_method   = "DELETE"
+  authorization = "NONE"
+  api_key_required = true
+}
+
 # Integrations
 
 resource "aws_api_gateway_integration" "scraper_integration" {
@@ -148,15 +156,39 @@ resource "aws_api_gateway_integration" "voice_integration" {
   uri                     = var.list_audio_integration_uri
 }
 
+resource "aws_api_gateway_integration" "voice_integration_delete" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.voice.id
+  http_method             = aws_api_gateway_method.voice_method_delete.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.delete_voice_integration_uri
+}
+
 # Deployment
 resource "aws_api_gateway_deployment" "deployment" {
   rest_api_id = aws_api_gateway_rest_api.api.id
+  
+  # Add this triggers block to force redeployment when methods change
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_integration.generate_audio_integration.id,
+      aws_api_gateway_integration.clone_service_integration.id,
+      aws_api_gateway_integration.list_audio_integration.id,
+      aws_api_gateway_integration.index_integration.id,
+      aws_api_gateway_integration.voice_integration.id,
+      aws_api_gateway_integration.voice_integration_delete.id,  # This is your new DELETE
+      aws_api_gateway_integration.scraper_integration.id,
+    ]))
+  }
+  
   depends_on = [
     aws_api_gateway_integration.generate_audio_integration,
     aws_api_gateway_integration.clone_service_integration,
     aws_api_gateway_integration.list_audio_integration,
     aws_api_gateway_integration.index_integration,
     aws_api_gateway_integration.voice_integration,
+    aws_api_gateway_integration.voice_integration_delete,
     aws_api_gateway_integration.scraper_integration
   ]
 
@@ -241,4 +273,15 @@ resource "aws_lambda_permission" "allow_apigw_voice" {
   function_name = var.list_service_function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/GET/voice"
+}
+
+resource "aws_lambda_permission" "allow_apigw_voice_delete" {
+  statement_id  = "AllowInvokeFromApiGWVoiceDeletion"
+  action        = "lambda:InvokeFunction"
+  function_name = var.delete_voice_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/DELETE/voice*"
+
+  depends_on = [aws_api_gateway_method.voice_method_delete]
+
 }

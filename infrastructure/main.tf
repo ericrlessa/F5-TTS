@@ -8,7 +8,6 @@ provider "aws" {
   }
 }
 
-
 terraform {
   backend "s3" {}
 }
@@ -79,6 +78,15 @@ module "list_audio" {
   region = var.region
 }
 
+module "delete_voice" {
+  source = "./modules/delete-voice"
+  bucket_name = var.bucket_name
+  env = var.env
+  region = var.region
+  delete_voice_function_name = var.delete_voice_function_name
+  voice_delete_image = local.voice_delete_image
+}
+
 module "processing_result_audio" {
   source = "./modules/processing-result-listener"
   processing_result_function_name = var.processing_result_function_name
@@ -97,6 +105,7 @@ module "scraper" {
   env = var.env
 }
 
+
 module "api_gateway" {
   source = "./modules/api-gateway"
   clone_service_integration_uri = module.clone_service.lambda_invoke_arn
@@ -109,6 +118,8 @@ module "api_gateway" {
   env = var.env
   region = var.region
   scraper_function_name = var.scraper_function_name
+  delete_voice_function_name = var.delete_voice_function_name
+  delete_voice_integration_uri = module.delete_voice.lambda_invoke_arn
 }
 
 module "sns_contact" {

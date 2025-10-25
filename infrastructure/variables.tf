@@ -24,6 +24,7 @@ locals {
   scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:latest"
   scaling_controller_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scaling-controller:latest"
   scaling_down_controller_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scaling-down-controller:latest"
+  voice_delete_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/voice-delete:latest"
 }
 
 variable "bucket_name" {
@@ -70,6 +71,11 @@ variable "clone_service_function_name" {
 variable "list_audio_function_name" {
   type    = string
   default = "list-audio"
+}
+
+variable "delete_voice_function_name" {
+  type    = string
+  default = "voice-delete"
 }
 
 variable "processing_result_function_name" {

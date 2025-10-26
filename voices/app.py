@@ -31,9 +31,11 @@ def voice(id: str):
         logger.info(f"Generating voice pre signed url to bucket {BUCKET_NAME} id {id}")
 
         wav_prefix = f"voices/{id}/ref.wav"
+        txt_prefix = f"voices/{id}/ref_text.txt"
 
         return {            
-            "url": generate_presigned_url(wav_prefix)
+            "url_wav": generate_presigned_url(wav_prefix),
+            "url_txt": generate_presigned_url(txt_prefix)
         }
 
     except Exception as e:

@@ -31,6 +31,17 @@ class AudioFile(BaseModel):
     url_wav: Optional[str]
 
 def generate_presigned_url(key):
+    try:
+        # Check if the object exists
+        s3.head_object(Bucket=BUCKET_NAME, Key=key)
+    except ClientError as e:
+        if e.response['Error']['Code'] == "404":
+            # Key does not exist
+            return None
+        else:
+            raise
+
+    # Key exists, generate presigned URL
     return s3.generate_presigned_url(
         ClientMethod="get_object",
         Params={"Bucket": BUCKET_NAME, "Key": key},

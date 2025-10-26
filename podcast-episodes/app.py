@@ -1,29 +1,58 @@
-import re
-from fastapi import FastAPI, Form, HTTPException
-from fastapi.responses import JSONResponse
 import boto3
-from botocore.exceptions import ClientError
 import os
-import json
+from fastapi import FastAPI, HTTPException, Form
+from fastapi.responses import JSONResponse
 from mangum import Mangum
+from typing import Optional
+from pydantic import BaseModel
 import logging
+import json
 import base64
+from botocore.exceptions import ClientError
 
-# Setup
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 app = FastAPI()
 handler = Mangum(app)
 
-logger = logging.getLogger("uvicorn")
-logger.setLevel(logging.INFO)
+s3 = boto3.client("s3", region_name="ca-central-1")
+batch = boto3.client('batch', region_name='ca-central-1')
+
+BUCKET_NAME = os.environ["BUCKET_NAME"]
 
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
-BUCKET_NAME = os.environ.get("BUCKET_NAME")
 JOB_QUEUE = os.environ.get("JOB_QUEUE")
 FREE_JOB_QUEUE = os.environ.get("FREE_JOB_QUEUE")
 JOB_DEFINITION = os.environ.get("JOB_DEFINITION")
 
-s3 = boto3.client("s3", region_name="ca-central-1")
-batch = boto3.client('batch', region_name='ca-central-1')
+class AudioFile(BaseModel):
+    url_txt: str
+    url_wav: Optional[str]
+
+def generate_presigned_url(key):
+    return s3.generate_presigned_url(
+        ClientMethod="get_object",
+        Params={"Bucket": BUCKET_NAME, "Key": key},
+        ExpiresIn=3600,
+    )
+
+@app.get("/episodes/{id}", response_model=AudioFile)
+def podcast(id: str):
+    try:
+        logger.info(f"Generating podcast pre signed url to bucket {BUCKET_NAME} id {id}")
+
+        txt_prefix = f"episodes/{id}/transcript.txt"
+        wav_prefix = f"episodes/{id}/audio.wav"
+
+        return {            
+            "url_txt": generate_presigned_url(txt_prefix),
+            "url_wav": generate_presigned_url(wav_prefix)
+        }
+
+    except Exception as e:
+        logger.error(f"Error listing audio files: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 def file_exists(bucket_name: str, file_key: str) -> bool:
     try:
@@ -60,11 +89,9 @@ def submit_batch_job(encoded_message, estimated_duration, plan, episode):
     print(f"Job submitted successfully: {response['jobId']}")
     return response
 
-@app.post("/generate-audio")
-async def generate_audio_multiple_voices(
-    user: str = Form(...),
-    podcast: str = Form(...),
-    episode: str = Form(...),
+@app.post("/episodes")
+async def create(
+    id: str = Form(...),
     gen_text: str = Form(...),
     extracted_content: str = Form(...),
     models: str = Form(...),
@@ -89,7 +116,7 @@ async def generate_audio_multiple_voices(
             })
 
         transcript_bytes = gen_text.encode("utf-8")
-        s3_key_base = f"{user}/podcasts/{podcast}/{episode}"
+        s3_key_base = f"podcasts/{id}"
         s3_key_gen_txt = f"{s3_key_base}/transcript.txt"
         s3_key_output_wav = f"{s3_key_base}/transcript.wav"
 
@@ -120,10 +147,10 @@ async def generate_audio_multiple_voices(
 
         encoded_message = base64.b64encode(json.dumps(message_body).encode()).decode()
 
-        submit_batch_job(encoded_message, estimated_duration, plan, episode)
+        submit_batch_job(encoded_message, estimated_duration, plan, id)
 
         logger.info(f"✅ Uploaded text to S3: {s3_key_gen_txt}")
-        logger.info(f"📤 Sent SQS message: {message_body}")
+        logger.info(f"📤 Submitted job message: {message_body}")
 
         return JSONResponse(
             status_code=200,

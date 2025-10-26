@@ -35,10 +35,10 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
 }
 
 # ================= Lambda Function
-resource "aws_lambda_function" "list_audio_handler" {
-  function_name = var.list_audio_function_name
+resource "aws_lambda_function" "voices_lambda" {
+  function_name = var.voices_function_name
   package_type  = "Image"
-  image_uri     = var.list_audio_handler_image
+  image_uri     = var.voices_image_uri
   role          = aws_iam_role.lambda_role.arn
   timeout       = 60
 

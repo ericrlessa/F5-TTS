@@ -9,7 +9,7 @@ terraform {
 
 # ================= IAM Role for Lambda
 resource "aws_iam_role" "lambda_role" {
-  name = "lambda-gen-text-role-${var.env}"
+  name = "podcast-episodes-role-${var.env}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -71,10 +71,10 @@ resource "aws_iam_role_policy_attachment" "batch_submit" {
 
 
 # ================= Lambda Function
-resource "aws_lambda_function" "gen_audio_handler" {
-  function_name = var.generate_audio_function_name
+resource "aws_lambda_function" "podcast_episodes" {
+  function_name = var.podcast_episodes_function_name
   package_type  = "Image"
-  image_uri     = var.generate_audio_handler_image
+  image_uri     = var.podcast_episodes_image
   role          = aws_iam_role.lambda_role.arn
   timeout       = 60
 

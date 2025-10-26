@@ -6,11 +6,11 @@ variable "bucket_name" {
   type    = string
 }
 
-variable "list_audio_function_name" {
+variable "voices_function_name" {
   type    = string
 }
 
-variable "list_audio_handler_image" {
+variable "voices_image_uri" {
   type    = string
 }
 

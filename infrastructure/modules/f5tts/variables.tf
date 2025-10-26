@@ -22,10 +22,6 @@ variable "ami_id" {
   type = string
 }
 
-variable "sqs_listener_image" {
-  type = string
-}
-
 variable "bucket_name" {
   type    = string
 }

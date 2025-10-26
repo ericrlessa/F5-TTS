@@ -1,9 +1,9 @@
-variable "generate_audio_function_name" {
+variable "podcast_episodes_function_name" {
   type = string
 }
 
-variable "generate_audio_handler_image" {
-  description = "ECR image URI for the generate-audio Lambda"
+variable "podcast_episodes_image" {
+  description = "ECR image URI for the podcast episodes Lambda"
   type        = string
 }
 

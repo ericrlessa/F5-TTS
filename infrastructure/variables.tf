@@ -16,15 +16,10 @@ variable "account" {
 
 locals {
   f5tts_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/f5tts:latest"
-  sqs_listener_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/batch-job:latest"
-  generate_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/gen-audio-handler:latest"
-  clone_service_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/lambda-voice-clone:latest"
-  list_audio_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/list-audio-handler:latest"
-  processing_result_handler_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/processing-result-listener:latest"
+  f5tts_result_processing_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/f5tts-result-processing:latest"
+  podcast_episodes_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/podcast-episodes:latest"
+  voices_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/voices:latest"
   scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:latest"
-  scaling_controller_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scaling-controller:latest"
-  scaling_down_controller_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scaling-down-controller:latest"
-  voice_delete_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/voice-delete:latest"
 }
 
 variable "bucket_name" {
@@ -40,7 +35,7 @@ variable "image_builder_logs_bucket" {
 
 variable "sqs_queue_name" { 
   type=string 
-  default="generate-audio-events"
+  default="f5tts-result-events"
 }
 
 variable "ecs_instance_type" { 
@@ -53,44 +48,24 @@ variable "ecs_cluster_name" {
   default="voice-clone-cluster" 
 }
 
-variable "scaling_conroller_function_name" {
+variable "podcast_episodes_function_name" {
   type = string
-  default = "scaling_conroller"
+  default = "podcast-episodes"
 }
 
-variable "generate_audio_function_name" {
-  type = string
-  default = "gen-audio"
-}
-
-variable "clone_service_function_name" {
-  type = string
-  default = "voice-clone-handler"
-}
-
-variable "list_audio_function_name" {
+variable "voices_function_name" {
   type    = string
   default = "list-audio"
 }
 
-variable "delete_voice_function_name" {
-  type    = string
-  default = "voice-delete"
-}
-
 variable "processing_result_function_name" {
   type    = string
-  default = "processing-result-audio"
+  default = "f5tts-result-processing"
 }
 
 variable "scraper_function_name" {
   type    = string
   default = "scraper"
-}
-
-variable "scaling_down_controller_function_name" {
-  type    = string
-  default = "scaling-down-controller"
 }
 
 variable "supabase_url" {

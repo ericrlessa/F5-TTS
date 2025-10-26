@@ -3,7 +3,7 @@
 region=$1
 region=${region:-ca-central-1}
 
-image=${image:-list-audio-handler}
+image=${image:-podcast-episodes}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

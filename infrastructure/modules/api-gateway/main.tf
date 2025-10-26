@@ -13,29 +13,16 @@ resource "aws_api_gateway_rest_api" "api" {
   ]
 }
 
-# Resources for each endpoint
-resource "aws_api_gateway_resource" "generate_audio" {
+resource "aws_api_gateway_resource" "episodes" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = "generate-audio"
+  path_part   = "episodes"
 }
 
-resource "aws_api_gateway_resource" "clone_service" {
+resource "aws_api_gateway_resource" "voices" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = "clone-service"
-}
-
-resource "aws_api_gateway_resource" "audio" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = "audio"
-}
-
-resource "aws_api_gateway_resource" "voice" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = "voice"
+  path_part   = "voices"
 }
 
 resource "aws_api_gateway_resource" "scraper" {
@@ -52,55 +39,45 @@ resource "aws_api_gateway_method" "scraper_method" {
   api_key_required = true
 }
 
-resource "aws_api_gateway_method" "generate_audio_method" {
+resource "aws_api_gateway_method" "episodes_get" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.generate_audio.id
+  resource_id   = aws_api_gateway_resource.episodes.id
+  http_method   = "GET"
+  authorization = "NONE"
+  api_key_required = true
+}
+
+resource "aws_api_gateway_method" "episodes_post" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.episodes.id
   http_method   = "POST"
   authorization = "NONE"
   api_key_required = true
 }
 
-resource "aws_api_gateway_method" "clone_service_method" {
+resource "aws_api_gateway_method" "voices_get" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.clone_service.id
+  resource_id   = aws_api_gateway_resource.voices.id
+  http_method   = "GET"
+  authorization = "NONE"
+  api_key_required = true
+}
+
+resource "aws_api_gateway_method" "voices_post" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.voices.id
   http_method   = "POST"
   authorization = "NONE"
   api_key_required = true
 }
 
-resource "aws_api_gateway_method" "list_audio_method" {
+resource "aws_api_gateway_method" "voices_delete" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.audio.id
-  http_method   = "GET"
-  authorization = "NONE"
-  api_key_required = true
-}
-
-resource "aws_api_gateway_method" "index_method" {
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_rest_api.api.root_resource_id
-  http_method   = "GET"
-  authorization = "NONE"
-  api_key_required = true
-}
-
-resource "aws_api_gateway_method" "voice_method" {
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.voice.id
-  http_method   = "GET"
-  authorization = "NONE"
-  api_key_required = true
-}
-
-resource "aws_api_gateway_method" "voice_method_delete" {
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.voice.id
+  resource_id   = aws_api_gateway_resource.voices.id
   http_method   = "DELETE"
   authorization = "NONE"
   api_key_required = true
 }
-
-# Integrations
 
 resource "aws_api_gateway_integration" "scraper_integration" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
@@ -111,85 +88,76 @@ resource "aws_api_gateway_integration" "scraper_integration" {
   uri                     = var.scraper_integration_uri
 }
 
-resource "aws_api_gateway_integration" "generate_audio_integration" {
+resource "aws_api_gateway_integration" "episodes_integration_post" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_resource.generate_audio.id
-  http_method             = aws_api_gateway_method.generate_audio_method.http_method
+  resource_id             = aws_api_gateway_resource.episodes.id
+  http_method             = aws_api_gateway_method.voices_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = var.generate_audio_integration_uri
+  uri                     = var.episodes_integration_uri
 }
 
-resource "aws_api_gateway_integration" "clone_service_integration" {
+resource "aws_api_gateway_integration" "episodes_integration_get" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_resource.clone_service.id
-  http_method             = aws_api_gateway_method.clone_service_method.http_method
+  resource_id             = aws_api_gateway_resource.episodes.id
+  http_method             = aws_api_gateway_method.voices_get.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = var.clone_service_integration_uri
+  uri                     = var.episodes_integration_uri
 }
 
-resource "aws_api_gateway_integration" "list_audio_integration" {
+resource "aws_api_gateway_integration" "voices_integration_get" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_resource.audio.id
-  http_method             = aws_api_gateway_method.list_audio_method.http_method
+  resource_id             = aws_api_gateway_resource.voices.id
+  http_method             = aws_api_gateway_method.voices_get.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = var.list_audio_integration_uri
+  uri                     = var.voices_integration_uri
 }
 
-resource "aws_api_gateway_integration" "index_integration" {
+resource "aws_api_gateway_integration" "voices_integration_post" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_rest_api.api.root_resource_id
-  http_method             = aws_api_gateway_method.index_method.http_method
+  resource_id             = aws_api_gateway_resource.voices.id
+  http_method             = aws_api_gateway_method.voices_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = var.list_audio_integration_uri
+  uri                     = var.voices_integration_uri
 }
 
-resource "aws_api_gateway_integration" "voice_integration" {
+resource "aws_api_gateway_integration" "voices_integration_delete" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_resource.voice.id
-  http_method             = aws_api_gateway_method.voice_method.http_method
+  resource_id             = aws_api_gateway_resource.voices.id
+  http_method             = aws_api_gateway_method.voices_delete.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = var.list_audio_integration_uri
+  uri                     = var.voices_integration_uri
 }
 
-resource "aws_api_gateway_integration" "voice_integration_delete" {
-  rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_resource.voice.id
-  http_method             = aws_api_gateway_method.voice_method_delete.http_method
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = var.delete_voice_integration_uri
-}
-
-# Deployment
 resource "aws_api_gateway_deployment" "deployment" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   
-  # Add this triggers block to force redeployment when methods change
   triggers = {
     redeployment = sha1(jsonencode([
-      aws_api_gateway_integration.generate_audio_integration.id,
-      aws_api_gateway_integration.clone_service_integration.id,
-      aws_api_gateway_integration.list_audio_integration.id,
-      aws_api_gateway_integration.index_integration.id,
-      aws_api_gateway_integration.voice_integration.id,
-      aws_api_gateway_integration.voice_integration_delete.id,  # This is your new DELETE
+      aws_api_gateway_integration.episodes_integration_get.id,
+      aws_api_gateway_integration.episodes_integration_post.id,
+      
+      aws_api_gateway_integration.voices_integration_get.id,
+      aws_api_gateway_integration.voices_integration_post.id,
+      aws_api_gateway_integration.voices_integration_delete.id,
+
       aws_api_gateway_integration.scraper_integration.id,
     ]))
   }
   
   depends_on = [
-    aws_api_gateway_integration.generate_audio_integration,
-    aws_api_gateway_integration.clone_service_integration,
-    aws_api_gateway_integration.list_audio_integration,
-    aws_api_gateway_integration.index_integration,
-    aws_api_gateway_integration.voice_integration,
-    aws_api_gateway_integration.voice_integration_delete,
-    aws_api_gateway_integration.scraper_integration
+     aws_api_gateway_integration.episodes_integration_get,
+      aws_api_gateway_integration.episodes_integration_post,
+      
+      aws_api_gateway_integration.voices_integration_get,
+      aws_api_gateway_integration.voices_integration_post,
+      aws_api_gateway_integration.voices_integration_delete,
+
+      aws_api_gateway_integration.scraper_integration,
   ]
 
   lifecycle {
@@ -203,15 +171,15 @@ resource "aws_api_gateway_stage" "stage_env" {
   stage_name    = var.env
 }
 
-resource "aws_api_gateway_api_key" "voice_clone_api_key" {
-  name = "voice-clone-api-key"
-  description = "API Key for Voice Clone API"
+resource "aws_api_gateway_api_key" "geniuspod_api_key" {
+  name = "geniuspod-api-key"
+  description = "API Key for Geniuspod API"
   enabled     = true
 }
 
-resource "aws_api_gateway_usage_plan" "voice_clone_usage_plan" {
-  name        = "voice-clone-usage-plan"
-  description = "Usage plan for Voice Clone API"
+resource "aws_api_gateway_usage_plan" "geniuspod_usage_plan" {
+  name        = "geniuspod-usage-plan"
+  description = "Usage plan for Geniuspod API"
 
   api_stages {
     api_id = aws_api_gateway_rest_api.api.id
@@ -225,8 +193,6 @@ resource "aws_api_gateway_usage_plan_key" "main" {
   usage_plan_id = aws_api_gateway_usage_plan.voice_clone_usage_plan.id
 }
 
-# Lambda permissions (updated for REST API)
-
 resource "aws_lambda_permission" "allow_apigw_scraper" {
   statement_id  = "AllowInvokeFromApiGWScraper"
   action        = "lambda:InvokeFunction"
@@ -235,53 +201,18 @@ resource "aws_lambda_permission" "allow_apigw_scraper" {
   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/POST/scraper"
 }
 
-resource "aws_lambda_permission" "allow_apigw_generate_audio" {
-  statement_id  = "AllowInvokeFromApiGWGenerateAudio"
+resource "aws_lambda_permission" "allow_apigw_voices" {
+  statement_id  = "AllowInvokeFromApiGWVoices"
   action        = "lambda:InvokeFunction"
-  function_name = var.generate_audio_function_name
+  function_name = var.voices_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/POST/generate-audio"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/*/voices"
 }
 
-resource "aws_lambda_permission" "allow_apigw_clone_service" {
-  statement_id  = "AllowInvokeFromApiGWCloneService"
+resource "aws_lambda_permission" "allow_apigw_episodes" {
+  statement_id  = "AllowInvokeFromApiGWEpisodes"
   action        = "lambda:InvokeFunction"
-  function_name = var.clone_service_function_name
+  function_name = var.episodes_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/POST/clone-service"
-}
-
-resource "aws_lambda_permission" "allow_apigw_list_audio" {
-  statement_id  = "AllowInvokeFromApiGWListAudio"
-  action        = "lambda:InvokeFunction"
-  function_name = var.list_service_function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/GET/audio"
-}
-
-resource "aws_lambda_permission" "allow_apigw_index" {
-  statement_id  = "AllowInvokeFromApiGWIndex"
-  action        = "lambda:InvokeFunction"
-  function_name = var.list_service_function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/GET/"
-}
-
-resource "aws_lambda_permission" "allow_apigw_voice" {
-  statement_id  = "AllowInvokeFromApiGWVoice"
-  action        = "lambda:InvokeFunction"
-  function_name = var.list_service_function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/GET/voice"
-}
-
-resource "aws_lambda_permission" "allow_apigw_voice_delete" {
-  statement_id  = "AllowInvokeFromApiGWVoiceDeletion"
-  action        = "lambda:InvokeFunction"
-  function_name = var.delete_voice_function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/DELETE/voice*"
-
-  depends_on = [aws_api_gateway_method.voice_method_delete]
-
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/*/episodes"
 }

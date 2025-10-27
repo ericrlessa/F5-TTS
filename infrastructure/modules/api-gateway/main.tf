@@ -1,7 +1,7 @@
 # REST API Gateway with binary media types
 resource "aws_api_gateway_rest_api" "api" {
-  name        = "voice-clone-api"
-  description = "Voice Clone REST API"
+  name        = "GeniusPod-api"
+  description = "Podcasts episodes and voices REST API"
   
   binary_media_types = [
     "multipart/form-data",    # For form data with file uploads
@@ -68,6 +68,14 @@ resource "aws_api_gateway_method" "episodes_post" {
   api_key_required = true
 }
 
+resource "aws_api_gateway_method" "episodes_delete" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.episodes.id
+  http_method   = "DELETE"
+  authorization = "NONE"
+  api_key_required = true
+}
+
 resource "aws_api_gateway_method" "voices_get" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.voices.id
@@ -119,6 +127,15 @@ resource "aws_api_gateway_integration" "episodes_integration_get" {
   uri                     = var.episodes_integration_uri
 }
 
+resource "aws_api_gateway_integration" "episodes_integration_delete" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.episodes.id
+  http_method             = aws_api_gateway_method.voices_delete.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = var.episodes_integration_uri
+}
+
 resource "aws_api_gateway_integration" "voices_integration_get" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.voices.id
@@ -153,6 +170,7 @@ resource "aws_api_gateway_deployment" "deployment" {
     redeployment = sha1(jsonencode([
       aws_api_gateway_integration.episodes_integration_get.id,
       aws_api_gateway_integration.episodes_integration_post.id,
+      aws_api_gateway_integration.episodes_integration_delete.id,
       
       aws_api_gateway_integration.voices_integration_get.id,
       aws_api_gateway_integration.voices_integration_post.id,
@@ -163,9 +181,10 @@ resource "aws_api_gateway_deployment" "deployment" {
   }
   
   depends_on = [
-     aws_api_gateway_integration.episodes_integration_get,
+      aws_api_gateway_integration.episodes_integration_get,
       aws_api_gateway_integration.episodes_integration_post,
-      
+      aws_api_gateway_integration.episodes_integration_delete,
+
       aws_api_gateway_integration.voices_integration_get,
       aws_api_gateway_integration.voices_integration_post,
       aws_api_gateway_integration.voices_integration_delete,

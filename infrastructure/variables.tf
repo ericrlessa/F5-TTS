@@ -43,11 +43,6 @@ variable "ecs_instance_type" {
   default="g5.xlarge" 
 }
 
-variable "ecs_cluster_name" { 
-  type=string 
-  default="voice-clone-cluster" 
-}
-
 variable "podcast_episodes_function_name" {
   type = string
   default = "podcast-episodes"

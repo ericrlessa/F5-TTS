@@ -17,6 +17,8 @@ app = FastAPI()
 handler = Mangum(app)
 
 s3 = boto3.client("s3", region_name="ca-central-1")
+s3Resource = boto3.resource("s3")
+
 batch = boto3.client('batch', region_name='ca-central-1')
 
 BUCKET_NAME = os.environ["BUCKET_NAME"]
@@ -170,4 +172,23 @@ async def create(
 
     except Exception as e:
         logger.exception("❌ Failed to process form submission")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/episodes/{id}")
+async def delete(id: str):
+    try:
+        s3_episode = f"episodes/{id}"
+
+        bucket = s3Resource.Bucket(BUCKET_NAME)
+
+        response = bucket.objects.filter(Prefix=s3_episode).delete()
+        print(f"Delete response: {response}")
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "Delete successful"
+            }
+        )
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

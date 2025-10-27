@@ -100,9 +100,9 @@ def submit_batch_job(encoded_message, estimated_duration, plan, episode):
     print(f"Job submitted successfully: {response['jobId']}")
     return response
 
-@app.post("/episodes")
+@app.post("/episodes/{id}")
 async def create(
-    id: str = Form(...),
+    id: str,
     gen_text: str = Form(...),
     extracted_content: str = Form(...),
     models: str = Form(...),

@@ -62,9 +62,9 @@ async def delete(id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/voices")
+@app.post("/voices/{id}")
 async def clone(
-    id: str = Form(...),
+    id: str,
     ref_text: str = Form(...),
     audio: UploadFile = File(...)
 ):

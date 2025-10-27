@@ -3,7 +3,7 @@
 region=$1
 region=${region:-ca-central-1}
 
-image=${image:-processing-result-listener}
+image=${image:-f5tts-result-processing}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

@@ -51,7 +51,7 @@ module "f5tts_result_processing" {
   processing_result_handler_image = local.f5tts_result_processing_image
   supabase_url = var.supabase_url
   supabase_service_key = var.supabase_service_key
-  sqs_queue_arn = module.gen_audio_queue.sqs_queue_result_arn
+  sqs_queue_arn = module.f5tts_result_queue.sqs_queue_result_arn
   env = var.env
 }
 

@@ -13,17 +13,30 @@ resource "aws_api_gateway_rest_api" "api" {
   ]
 }
 
-resource "aws_api_gateway_resource" "episodes" {
+resource "aws_api_gateway_resource" "episodes_root" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_rest_api.api.root_resource_id
   path_part   = "episodes"
 }
 
-resource "aws_api_gateway_resource" "voices" {
+resource "aws_api_gateway_resource" "episodes" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_resource.episodes_root.id
+  path_part   = "{id}"
+}
+
+resource "aws_api_gateway_resource" "voices_root" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_rest_api.api.root_resource_id
   path_part   = "voices"
 }
+
+resource "aws_api_gateway_resource" "voices" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_resource.voices_root.id
+  path_part   = "{id}"
+}
+
 
 resource "aws_api_gateway_resource" "scraper" {
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -188,9 +201,9 @@ resource "aws_api_gateway_usage_plan" "geniuspod_usage_plan" {
 }
 
 resource "aws_api_gateway_usage_plan_key" "main" {
-  key_id        = aws_api_gateway_api_key.voice_clone_api_key.id
+  key_id        = aws_api_gateway_api_key.geniuspod_api_key.id
   key_type      = "API_KEY"
-  usage_plan_id = aws_api_gateway_usage_plan.voice_clone_usage_plan.id
+  usage_plan_id = aws_api_gateway_usage_plan.geniuspod_usage_plan.id
 }
 
 resource "aws_lambda_permission" "allow_apigw_scraper" {
@@ -206,7 +219,7 @@ resource "aws_lambda_permission" "allow_apigw_voices" {
   action        = "lambda:InvokeFunction"
   function_name = var.voices_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/*/voices"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/*/voices/*"
 }
 
 resource "aws_lambda_permission" "allow_apigw_episodes" {
@@ -214,5 +227,5 @@ resource "aws_lambda_permission" "allow_apigw_episodes" {
   action        = "lambda:InvokeFunction"
   function_name = var.episodes_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/*/episodes"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/*/episodes/*"
 }

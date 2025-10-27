@@ -55,7 +55,7 @@ variable "podcast_episodes_function_name" {
 
 variable "voices_function_name" {
   type    = string
-  default = "list-audio"
+  default = "voices"
 }
 
 variable "processing_result_function_name" {

@@ -127,9 +127,9 @@ async def create(
             })
 
         transcript_bytes = gen_text.encode("utf-8")
-        s3_key_base = f"podcasts/{id}"
+        s3_key_base = f"episodes/{id}"
         s3_key_gen_txt = f"{s3_key_base}/transcript.txt"
-        s3_key_output_wav = f"{s3_key_base}/transcript.wav"
+        s3_key_output_wav = f"{s3_key_base}/audio.wav"
 
         extracted_content_bytes = extracted_content.encode("utf-8")
         s3_key_content_txt = f"{s3_key_base}/extracted_content.txt"

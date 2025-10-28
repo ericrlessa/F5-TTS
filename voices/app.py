@@ -15,6 +15,7 @@ logger.setLevel(logging.INFO)
 app = FastAPI()
 handler = Mangum(app)
 
+s3Resource = boto3.resource("s3")
 s3 = boto3.client("s3", region_name="ca-central-1")
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 
@@ -47,7 +48,7 @@ async def delete(id: str):
     try:
         s3_voice = f"voices/{id}"
 
-        bucket = s3.Bucket(BUCKET_NAME)
+        bucket = s3Resource.Bucket(BUCKET_NAME)
 
         response = bucket.objects.filter(Prefix=s3_voice).delete()
         print(f"Delete response: {response}")

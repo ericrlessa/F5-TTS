@@ -84,6 +84,10 @@ def submit_batch_job(encoded_message, estimated_duration, plan, episode):
     if plan == "Free":
         queue = FREE_JOB_QUEUE
 
+    attemptDurationSeconds = estimated_duration + 180
+    if(attemptDurationSeconds < 600):
+        attemptDurationSeconds = 600
+
     response = batch.submit_job(
         jobName=job_name,
         jobQueue=queue,
@@ -95,7 +99,7 @@ def submit_batch_job(encoded_message, estimated_duration, plan, episode):
             ]
         },
         timeout={
-            'attemptDurationSeconds': (estimated_duration + 180)
+            'attemptDurationSeconds': attemptDurationSeconds
         }
     )
     

@@ -24,8 +24,6 @@ batch = boto3.client('batch', region_name='ca-central-1')
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
-JOB_QUEUE = os.environ.get("JOB_QUEUE")
-FREE_JOB_QUEUE = os.environ.get("FREE_JOB_QUEUE")
 JOB_DEFINITION = os.environ.get("JOB_DEFINITION")
 
 class AudioFile(BaseModel):
@@ -80,9 +78,10 @@ def file_exists(bucket_name: str, file_key: str) -> bool:
 def submit_batch_job(encoded_message, estimated_duration, plan, episode):
     job_name = f"episode-{episode}"
 
-    queue = JOB_QUEUE
-    if plan == "Free":
-        queue = FREE_JOB_QUEUE
+    if not plan:
+        raise Exception("Plan not defined!")
+
+    queue = f"{plan}-job-queue"
 
     attemptDurationSeconds = estimated_duration + 180
     if(attemptDurationSeconds < 600):

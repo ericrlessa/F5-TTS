@@ -154,7 +154,7 @@ resource "aws_security_group" "batch_compute_sg" {
 
 # Job Queue
 resource "aws_batch_job_queue" "free_batch_job_queue" {
-  name     = var.free_batch_job_queue
+  name     = "Free-job-queue"
   state    = "ENABLED"
   priority = 1
   
@@ -164,8 +164,8 @@ resource "aws_batch_job_queue" "free_batch_job_queue" {
   }
 }
 
-resource "aws_batch_job_queue" "batch_job_queue" {
-  name     = var.batch_job_queue
+resource "aws_batch_job_queue" "starter_batch_job_queue" {
+  name     = "Starter-job-queue"
   state    = "ENABLED"
   priority = 2
   
@@ -175,6 +175,27 @@ resource "aws_batch_job_queue" "batch_job_queue" {
   }
 }
 
+resource "aws_batch_job_queue" "creator_batch_job_queue" {
+  name     = "Creator-job-queue"
+  state    = "ENABLED"
+  priority = 2
+  
+  compute_environment_order {
+    compute_environment = aws_batch_compute_environment.batch_compute_env.arn
+    order               = 1
+  }
+}
+
+resource "aws_batch_job_queue" "enterprise_batch_job_queue" {
+  name     = "Enterprise-job-queue"
+  state    = "ENABLED"
+  priority = 2
+  
+  compute_environment_order {
+    compute_environment = aws_batch_compute_environment.batch_compute_env.arn
+    order               = 1
+  }
+}
 
 # IAM Role for Batch Jobs
 resource "aws_iam_role" "batch_job_role" {

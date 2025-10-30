@@ -81,8 +81,6 @@ resource "aws_lambda_function" "podcast_episodes" {
   environment {
     variables = {
       BUCKET_NAME    = var.bucket_name
-      JOB_QUEUE = var.batch_job_queue
-      FREE_JOB_QUEUE = var.free_batch_job_queue
       JOB_DEFINITION = var.job_definition
     }
   }

@@ -30,8 +30,6 @@ module "f5tts" {
   vpc_id = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
 
-  batch_job_queue = var.batch_job_queue
-  free_batch_job_queue = var.free_batch_job_queue
   job_definition = var.job_definition
 
   ami_id = module.batch_image_builder.custom_ami_id
@@ -60,8 +58,6 @@ module "podcast_episodes" {
   bucket_name = var.bucket_name
   podcast_episodes_image = local.podcast_episodes_image
   podcast_episodes_function_name = var.podcast_episodes_function_name
-  free_batch_job_queue = var.free_batch_job_queue
-  batch_job_queue = var.batch_job_queue
   job_definition = var.job_definition
   
   env = var.env

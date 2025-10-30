@@ -16,14 +16,6 @@ variable "env" {
   type        = string  
 }
 
-variable "free_batch_job_queue" {
-  type        = string
-}
-
-variable "batch_job_queue" {
-  type        = string
-}
-
 variable "job_definition" {
   type        = string
 }

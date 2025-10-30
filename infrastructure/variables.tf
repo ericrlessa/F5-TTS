@@ -88,16 +88,6 @@ variable "origin_domain_name" {
   type        = string
 }
 
-variable "free_batch_job_queue" {
-  type        = string
-  default = "free-batch-job-queue"
-}
-
-variable "batch_job_queue" {
-  type        = string
-  default = "batch-job-queue"
-}
-
 variable "job_definition" {
   type        = string
   default = "job-gpu"

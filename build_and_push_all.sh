@@ -3,14 +3,13 @@
 region=$1
 region=${region:-ca-central-1}
 
-bash ./clone-service/build_and_push.sh ${region}
+env=$2
+env=${env:-dev}
 
-bash ./generate-audio/build_and_push.sh ${region}
+bash ./podcast-episodes/build_and_push.sh ${region} ${env}
 
-bash ./list-audio/build_and_push.sh ${region}
+bash ./processing-result-listener/build_and_push.sh ${region} ${env}
 
-bash ./batch-job/build_and_push.sh ${region}
+bash ./scraper/build_and_push.sh ${region} ${env}
 
-bash ./processing-result-listener/build_and_push.sh ${region}
-
-bash ./scraper/build_and_push.sh ${region}
+bash ./voices/build_and_push.sh ${region} ${env}

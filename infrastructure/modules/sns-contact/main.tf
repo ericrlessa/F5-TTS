@@ -8,7 +8,7 @@ terraform {
 }
 
 resource "aws_sns_topic" "my_topic" {
-  name = "geniuspod-contact-sns-topic"
+  name = "geniuspod-contact-sns-topic-${terraform.workspace}"
 }
 
 resource "aws_sns_topic_subscription" "email_subscriptions" {

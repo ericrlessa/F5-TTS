@@ -9,7 +9,7 @@ terraform {
 
 # ================= IAM Role for Lambda
 resource "aws_iam_role" "lambda_role" {
-  name = "podcast-episodes-role-${var.env}"
+  name = "podcast-episodes-role-${terraform.workspace}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -36,7 +36,7 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
 
 # Policy for Batch job submission
 resource "aws_iam_policy" "batch_submit_policy" {
-  name        = "batch-submit-policy-${var.env}"
+  name        = "batch-submit-policy-${terraform.workspace}"
   description = "Policy for Lambda to submit Batch jobs"
 
   policy = jsonencode({

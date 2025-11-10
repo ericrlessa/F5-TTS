@@ -1,8 +1,3 @@
-variable "env" {
-  description = "environment"
-  type        = string  
-}
-
 variable "region" { 
   type=string 
 }

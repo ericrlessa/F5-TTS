@@ -1,3 +1,3 @@
 bucket         = "geniuspod-terraform"
-key            = "env/qa/terraform.tfstate"
+key            = "terraform.tfstate"
 region         = "ca-central-1"

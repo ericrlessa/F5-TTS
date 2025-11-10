@@ -8,11 +8,11 @@ terraform {
 }
 
 resource "aws_sqs_queue" "gen_audio_result_dlq" {
-  name = "${var.sqs_queue_name}-result-dlq"
+  name = "${var.sqs_queue_name}-result-dlq-${terraform.workspace}"
 }
 
 resource "aws_sqs_queue" "gen_audio_result_queue" {
-  name = "${var.sqs_queue_name}-result"
+  name = "${var.sqs_queue_name}-result-${terraform.workspace}"
   visibility_timeout_seconds = 60
 
   redrive_policy = jsonencode({

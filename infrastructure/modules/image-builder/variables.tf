@@ -1,8 +1,3 @@
-variable "env" {
-  description = "Environment name"
-  type        = string
-}
-
 variable "f5tts_image" {
   description = "Container image to pre-pull"
   type        = string
@@ -30,8 +25,4 @@ variable "vpc_id" {
 
 variable "public_subnet_ids" {
   type = list(string)
-}
-
-variable "region" { 
-  type=string 
 }

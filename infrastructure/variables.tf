@@ -4,28 +4,23 @@ variable "region" {
   default     = "ca-central-1"
 }
 
-variable "env" {
-  description = "environment"
-  type        = string  
-}
-
 variable "account" {
   description = "AWS account to deploy resources"
   type        = string
 }
 
 locals {
-  f5tts_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/f5tts:latest"
-  f5tts_result_processing_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/f5tts-result-processing:latest"
-  podcast_episodes_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/podcast-episodes:latest"
-  voices_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/voices:latest"
-  scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:latest"
+  f5tts_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/f5tts:${terraform.workspace}"
+  f5tts_result_processing_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/f5tts-result-processing:${terraform.workspace}"
+  podcast_episodes_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/podcast-episodes:${terraform.workspace}"
+  voices_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/voices:${terraform.workspace}"
+  scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:${terraform.workspace}"
+  bucket_name = terraform.workspace == "prod"  ?  var.bucket_name : "${var.bucket_name}-${terraform.workspace}"
 }
 
 variable "bucket_name" {
   description = "S3 bucket name used by clone-service"
   type        = string
-  default     = "geniuspod-podcast"
 }
 
 variable "image_builder_logs_bucket" {

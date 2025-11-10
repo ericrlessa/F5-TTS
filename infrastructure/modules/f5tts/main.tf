@@ -9,7 +9,7 @@ terraform {
 
 # IAM Role for ECS instances
 resource "aws_iam_role" "ecs_instance_role" {
-  name = "ecs_instance_role-${var.env}"
+  name = "ecs_instance_role-${terraform.workspace}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -32,13 +32,13 @@ resource "aws_iam_role_policy_attachment" "ecs_instance_role" {
 
 # IAM Instance Profile
 resource "aws_iam_instance_profile" "ecs_instance_profile" {
-  name = "ecs_instance_profile-${var.env}"
+  name = "ecs_instance_profile-${terraform.workspace}"
   role = aws_iam_role.ecs_instance_role.name
 }
 
 # IAM Role for AWS Batch Service
 resource "aws_iam_role" "aws_batch_service_role" {
-  name = "aws_batch_service_role-${var.env}"
+  name = "aws_batch_service_role-${terraform.workspace}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -61,7 +61,7 @@ resource "aws_iam_role_policy_attachment" "aws_batch_service_role" {
 
 # Compute Environment
 resource "aws_batch_compute_environment" "free_batch_compute_env" {
-  compute_environment_name = "free-batch-compute-env-${var.env}"
+  compute_environment_name = "free-batch-compute-env-${terraform.workspace}"
   service_role             = aws_iam_role.aws_batch_service_role.arn
   type                     = "MANAGED"
 
@@ -84,13 +84,15 @@ resource "aws_batch_compute_environment" "free_batch_compute_env" {
       version            = "$Latest"
     }
 
+    
+
   }
 
   depends_on = [aws_iam_role_policy_attachment.aws_batch_service_role]
 }
 
 resource "aws_batch_compute_environment" "batch_compute_env" {
-  compute_environment_name = "batch-compute-env-${var.env}"
+  compute_environment_name = "batch-compute-env-${terraform.workspace}"
   service_role             = aws_iam_role.aws_batch_service_role.arn
   type                     = "MANAGED"
 
@@ -119,7 +121,7 @@ resource "aws_batch_compute_environment" "batch_compute_env" {
 }
 
 resource "aws_launch_template" "batch_launch_template" {
- name = "batch-launch-template-${var.env}"
+ name = "batch-launch-template-${terraform.workspace}"
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -137,7 +139,7 @@ resource "aws_launch_template" "batch_launch_template" {
 }
 
 resource "aws_security_group" "batch_compute_sg" {
-  name        = "batch-compute-sg-${var.env}"
+  name        = "batch-compute-sg-${terraform.workspace}"
   description = "Security group for AWS Batch compute environment in private subnet"
   vpc_id      = var.vpc_id
 
@@ -199,7 +201,7 @@ resource "aws_batch_job_queue" "enterprise_batch_job_queue" {
 
 # IAM Role for Batch Jobs
 resource "aws_iam_role" "batch_job_role" {
-  name = "batch_job_role-${var.env}"
+  name = "batch_job_role-${terraform.workspace}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -217,17 +219,17 @@ resource "aws_iam_role" "batch_job_role" {
 
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "batch_logs" {
-  name              = "/aws/batch/podcast-${var.env}"
+  name              = "/aws/batch/podcast-${terraform.workspace}"
   retention_in_days = 3
   
   tags = {
-    Environment = var.env
+    Environment = terraform.workspace
   }
 }
 
 # IAM Policy for CloudWatch Logs
 resource "aws_iam_role_policy" "batch_logs_policy" {
-  name = "batch-logs-policy-${var.env}"
+  name = "batch-logs-policy-${terraform.workspace}"
   role = aws_iam_role.batch_job_role.id
 
   policy = jsonencode({
@@ -294,7 +296,7 @@ resource "aws_batch_job_definition" "simple_job" {
       options = {
         awslogs-group         = aws_cloudwatch_log_group.batch_logs.name
         awslogs-region        = var.region
-        awslogs-stream-prefix = "batch-${var.env}"
+        awslogs-stream-prefix = "batch-${terraform.workspace}"
       }
     }
     jobRoleArn       = aws_iam_role.batch_job_role.arn
@@ -317,7 +319,7 @@ resource "aws_batch_job_definition" "simple_job" {
 
 # S3 Read Policy for the job role
 resource "aws_iam_policy" "s3_read_access" {
-  name        = "s3-read-access-${var.env}"
+  name        = "s3-read-access-${terraform.workspace}"
   description = "S3 read access for Batch jobs"
 
   policy = jsonencode({
@@ -348,7 +350,7 @@ resource "aws_iam_role_policy_attachment" "batch_job_s3_access" {
 
 # IAM Policy for SQS access
 resource "aws_iam_policy" "sqs_write_access" {
-  name        = "sqs-write-access-${var.env}"
+  name        = "sqs-write-access-${terraform.workspace}"
   description = "SQS write access for Batch jobs"
 
   policy = jsonencode({

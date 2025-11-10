@@ -4,6 +4,8 @@ provider "aws" {
 }
 
 resource "aws_acm_certificate" "cert" {
+  count = terraform.workspace == "prod" ? 1 : 0
+
   provider                  = aws.us_east_1
   domain_name               = var.domain_name
   validation_method         = "DNS"
@@ -20,16 +22,17 @@ resource "aws_acm_certificate" "cert" {
 
 resource "aws_cloudfront_distribution" "cdn_geniuspod" {
   enabled         = true
-  comment         = ""
+  comment         = "GeniusPod CDN - ${terraform.workspace}"
   is_ipv6_enabled = true
   http_version    = "http2"
-  price_class     = "PriceClass_All"
+  price_class     = terraform.workspace == "prod" ? "PriceClass_All" : "PriceClass_100" # Cheaper for dev
 
+  # Only prevent destroy in prod
   lifecycle {
     prevent_destroy = true
   }
 
-  aliases = ["geniuspod.ai", "www.geniuspod.ai"]
+  aliases = terraform.workspace == "prod" ? [var.domain_name, "www.${var.domain_name}"] : []
 
   origin {
     origin_id   = var.origin_id
@@ -66,10 +69,22 @@ resource "aws_cloudfront_distribution" "cdn_geniuspod" {
     error_caching_min_ttl = 10
   }
 
-  viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate.cert.arn
-    ssl_support_method       = "sni-only"
-    minimum_protocol_version = "TLSv1.2_2021"
+  # Use dynamic blocks for cleaner separation
+  dynamic "viewer_certificate" {
+    for_each = terraform.workspace == "prod" ? [1] : []
+    content {
+      acm_certificate_arn      = aws_acm_certificate.cert[0].arn
+      ssl_support_method       = "sni-only"
+      minimum_protocol_version = "TLSv1.2_2021"
+    }
+  }
+
+  dynamic "viewer_certificate" {
+    for_each = terraform.workspace == "dev" ? [1] : []
+    content {
+      cloudfront_default_certificate = true
+      minimum_protocol_version       = "TLSv1.2_2021"
+    }
   }
 
   restrictions {
@@ -78,5 +93,4 @@ resource "aws_cloudfront_distribution" "cdn_geniuspod" {
       locations        = []
     }
   }
-
 }

@@ -3,6 +3,7 @@
 region=$1
 image=$2
 dir=$3
+env=$4
 
 if [ "$image" == "" ]
 then
@@ -18,7 +19,6 @@ then
     exit 255
 fi
 
-fullname="${account}.dkr.ecr.${region}.amazonaws.com/${image}"
 
 # If the repository doesn't exist in ECR, create it.
 
@@ -35,7 +35,12 @@ aws ecr get-login-password --region "${region}" | docker login --username AWS --
 # Build the docker image locally with the image name and then push it to ECR
 # with the full name.
 
-docker build  -t ${image} ${dir}
-docker tag ${image} ${fullname}
+fullname="${account}.dkr.ecr.${region}.amazonaws.com/${image}:${env}"
+
+echo "image: " ${image}
+echo "fullname: " ${fullname}
+
+docker build  -t ${image}:${env} ${dir}
+docker tag ${image}:${env} ${fullname}
 
 docker push ${fullname}

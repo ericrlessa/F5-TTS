@@ -11,11 +11,6 @@ variable "bucket_name" {
   type    = string
 }
 
-variable "env" {
-  description = "environment"
-  type        = string  
-}
-
 variable "job_definition" {
   type        = string
 }

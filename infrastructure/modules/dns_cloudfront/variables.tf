@@ -9,5 +9,3 @@ variable "origin_id" {
 variable "origin_domain_name" {
   type        = string
 }
-
-

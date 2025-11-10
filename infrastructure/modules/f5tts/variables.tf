@@ -32,11 +32,6 @@ variable "private_subnet_ids" {
   type = list(string)
 }
 
-variable "env" {
-  description = "environment"
-  type        = string  
-}
-
 variable "job_definition" {
   type        = string
 }

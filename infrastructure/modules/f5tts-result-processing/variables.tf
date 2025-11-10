@@ -7,11 +7,6 @@ variable "processing_result_handler_image" {
   type        = string
 }
 
-variable "env" {
-  description = "environment"
-  type        = string
-}
-
 variable "supabase_url" {
   description = "supabase url"
   type        = string

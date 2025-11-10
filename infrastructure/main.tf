@@ -26,73 +26,62 @@ module "f5tts" {
 
   ecs_instance_type = var.ecs_instance_type
   f5tts_image = local.f5tts_image
-  bucket_name = var.bucket_name
+  bucket_name = local.bucket_name
   vpc_id = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
 
   job_definition = var.job_definition
 
   ami_id = module.batch_image_builder.custom_ami_id
-  
-  env = var.env
 }
 
 module "f5tts_result_queue" {
   source = "./modules/f5tts-result-queue"
-  region = var.region
   sqs_queue_name = var.sqs_queue_name
 }
 
 module "f5tts_result_processing" {
   source = "./modules/f5tts-result-processing"
-  processing_result_function_name = var.processing_result_function_name
+  processing_result_function_name = "${var.processing_result_function_name}-${terraform.workspace}"
   processing_result_handler_image = local.f5tts_result_processing_image
   supabase_url = var.supabase_url
   supabase_service_key = var.supabase_service_key
   sqs_queue_arn = module.f5tts_result_queue.sqs_queue_result_arn
-  env = var.env
 }
 
 module "podcast_episodes" {
   source = "./modules/podcast-episodes"
-  bucket_name = var.bucket_name
+  bucket_name = local.bucket_name
   podcast_episodes_image = local.podcast_episodes_image
-  podcast_episodes_function_name = var.podcast_episodes_function_name
+  podcast_episodes_function_name = "${var.podcast_episodes_function_name}-${terraform.workspace}"
   job_definition = var.job_definition
-  
-  env = var.env
 }
 
 module "voices" {
   source = "./modules/voices"
-  bucket_name = var.bucket_name
-  voices_function_name = var.voices_function_name
+  bucket_name = local.bucket_name
+  voices_function_name = "${var.voices_function_name}-${terraform.workspace}"
   voices_image_uri = local.voices_image
-  env = var.env
-  region = var.region
 }
 
 module "scraper" {
   source = "./modules/scraper"
-  scraper_function_name = var.scraper_function_name
+  scraper_function_name = "${var.scraper_function_name}-${terraform.workspace}"
   scraper_image = local.scraper_image
-  region = var.region
-  env = var.env
 }
 
 module "api_gateway" {
   source = "./modules/api-gateway"
 
-  env = var.env
   region = var.region
 
   scraper_integration_uri = module.scraper.lambda_invoke_arn
   episodes_integration_uri = module.podcast_episodes.lambda_invoke_arn
   voices_integration_uri = module.voices.lambda_invoke_arn
 
-  episodes_function_name = var.podcast_episodes_function_name
-  voices_function_name = var.voices_function_name
-  scraper_function_name = var.scraper_function_name
+  episodes_function_name = "${var.podcast_episodes_function_name}-${terraform.workspace}"
+  voices_function_name = "${var.voices_function_name}-${terraform.workspace}"
+  scraper_function_name = "${var.scraper_function_name}-${terraform.workspace}"
 }
 
 module "sns_contact" {
@@ -110,7 +99,6 @@ module "cloudfront_domain" {
 module "batch_image_builder" {
   source = "./modules/image-builder"
 
-  env                      = var.env
   f5tts_image              = local.f5tts_image
   image_builder_logs_bucket = var.image_builder_logs_bucket
   base_ami_id              = data.aws_ami.ecs_gpu_optimized.id
@@ -118,7 +106,6 @@ module "batch_image_builder" {
 
   vpc_id = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
-  region = var.region
 }
 
 data "aws_ami" "ecs_gpu_optimized" {

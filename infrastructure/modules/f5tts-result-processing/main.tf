@@ -8,7 +8,7 @@ terraform {
 }
 
 resource "aws_iam_role" "lambda_role" {
-  name = "lambda-audio-result-role-${var.env}"
+  name = "lambda-audio-result-role-${terraform.workspace}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -27,7 +27,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 }
 
 resource "aws_iam_role_policy" "lambda_sqs_policy" {
-  name = "lambda-sqs-audio-result-${var.env}"
+  name = "lambda-sqs-audio-result-${terraform.workspace}"
   role = aws_iam_role.lambda_role.id
 
   policy = jsonencode({

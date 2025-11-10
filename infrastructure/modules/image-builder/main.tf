@@ -1,6 +1,6 @@
 # IAM Role for Image Builder INSTANCE (EC2 that builds AMI)
 resource "aws_iam_role" "image_builder_role" {
-  name = "image-builder-role-${var.env}"
+  name = "image-builder-role-${terraform.workspace}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -42,13 +42,13 @@ resource "aws_iam_role_policy_attachment" "image_builder_service" {
 }
 
 resource "aws_iam_instance_profile" "image_builder_profile" {
-  name = "image-builder-profile-${var.env}"
+  name = "image-builder-profile-${terraform.workspace}"
   role = aws_iam_role.image_builder_role.name
 }
 
 # Security Group for Image Builder instances
 resource "aws_security_group" "image_builder" {
-  name        = "image-builder-sg-${var.env}"
+  name        = "image-builder-sg-${terraform.workspace}"
   description = "Security group for Image Builder instances"
   vpc_id      = var.vpc_id
 
@@ -69,12 +69,12 @@ resource "aws_security_group" "image_builder" {
   }
 
   tags = {
-    Environment = var.env
+    Environment = terraform.workspace
   }
 }
 
 resource "aws_imagebuilder_component" "pull_container" {
-  name     = "pull-container-${var.env}"
+  name     = "pull-container-${terraform.workspace}"
   platform = "Linux"
   version  = "1.0.2"  # Increment version
 
@@ -131,7 +131,7 @@ resource "aws_imagebuilder_component" "pull_container" {
 
 # Image Recipe
 resource "aws_imagebuilder_image_recipe" "batch_ami_recipe" {
-  name         = "batch-ami-recipe-${var.env}"
+  name         = "batch-ami-recipe-${terraform.workspace}"
   version      = "1.0.0"
   parent_image = var.base_ami_id
 
@@ -150,13 +150,13 @@ resource "aws_imagebuilder_image_recipe" "batch_ami_recipe" {
   }
 
   tags = {
-    Environment = var.env
+    Environment = terraform.workspace
   }
 }
 
 # Infrastructure Configuration
 resource "aws_imagebuilder_infrastructure_configuration" "batch_config" {
-  name                          = "batch-infra-config-${var.env}"
+  name                          = "batch-infra-config-${terraform.workspace}"
   description                   = "Infrastructure for Batch AMI builds"
   instance_profile_name         = aws_iam_instance_profile.image_builder_profile.name
   instance_types                = ["m5.large", "m5.xlarge"]
@@ -168,18 +168,18 @@ resource "aws_imagebuilder_infrastructure_configuration" "batch_config" {
   logging {
     s3_logs {
       s3_bucket_name = var.image_builder_logs_bucket
-      s3_key_prefix  = "image-builder/${var.env}"
+      s3_key_prefix  = "image-builder/${terraform.workspace}"
     }
   }
 
   tags = {
-    Environment = var.env
+    Environment = terraform.workspace
   }
 }
 
 # Image Pipeline (Manual Trigger)
 resource "aws_imagebuilder_image_pipeline" "batch_pipeline" {
-  name        = "batch-pipeline-${var.env}"
+  name        = "batch-pipeline-${terraform.workspace}"
   description = "Pipeline for Batch AMI with pre-pulled containers"
 
   image_recipe_arn                 = aws_imagebuilder_image_recipe.batch_ami_recipe.arn
@@ -192,7 +192,7 @@ resource "aws_imagebuilder_image_pipeline" "batch_pipeline" {
   }
 
   tags = {
-    Environment = var.env
+    Environment = terraform.workspace
   }
 }
 

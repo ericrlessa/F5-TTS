@@ -1,6 +1,6 @@
 # REST API Gateway with binary media types
 resource "aws_api_gateway_rest_api" "api" {
-  name        = "GeniusPod-api"
+  name        = "GeniusPod-api-${terraform.workspace}"
   description = "Podcasts episodes and voices REST API"
   
   binary_media_types = [
@@ -200,7 +200,7 @@ resource "aws_api_gateway_deployment" "deployment" {
 resource "aws_api_gateway_stage" "stage_env" {
   deployment_id = aws_api_gateway_deployment.deployment.id
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  stage_name    = var.env
+  stage_name    = terraform.workspace
 }
 
 resource "aws_api_gateway_api_key" "geniuspod_api_key" {
@@ -230,7 +230,7 @@ resource "aws_lambda_permission" "allow_apigw_scraper" {
   action        = "lambda:InvokeFunction"
   function_name = var.scraper_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/POST/scraper"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${terraform.workspace}/POST/scraper"
 }
 
 resource "aws_lambda_permission" "allow_apigw_voices" {
@@ -238,7 +238,7 @@ resource "aws_lambda_permission" "allow_apigw_voices" {
   action        = "lambda:InvokeFunction"
   function_name = var.voices_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/*/voices/*"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${terraform.workspace}/*/voices/*"
 }
 
 resource "aws_lambda_permission" "allow_apigw_episodes" {
@@ -246,5 +246,5 @@ resource "aws_lambda_permission" "allow_apigw_episodes" {
   action        = "lambda:InvokeFunction"
   function_name = var.episodes_function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${var.env}/*/episodes/*"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${terraform.workspace}/*/episodes/*"
 }

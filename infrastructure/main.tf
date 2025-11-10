@@ -30,7 +30,7 @@ module "f5tts" {
   vpc_id = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
 
-  job_definition = var.job_definition
+  job_definition = local.job_definition
 
   ami_id = module.batch_image_builder.custom_ami_id
 }
@@ -54,7 +54,7 @@ module "podcast_episodes" {
   bucket_name = local.bucket_name
   podcast_episodes_image = local.podcast_episodes_image
   podcast_episodes_function_name = "${var.podcast_episodes_function_name}-${terraform.workspace}"
-  job_definition = var.job_definition
+  job_definition = local.job_definition
 }
 
 module "voices" {

@@ -16,6 +16,7 @@ locals {
   voices_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/voices:${terraform.workspace}"
   scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:${terraform.workspace}"
   bucket_name = terraform.workspace == "prod"  ?  var.bucket_name : "${var.bucket_name}-${terraform.workspace}"
+  job_definition = "job-gpu-${terraform.workspace}"
 }
 
 variable "bucket_name" {
@@ -81,9 +82,4 @@ variable "origin_id" {
 
 variable "origin_domain_name" {
   type        = string
-}
-
-variable "job_definition" {
-  type        = string
-  default = "job-gpu"
 }

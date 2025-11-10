@@ -82,6 +82,7 @@ resource "aws_lambda_function" "podcast_episodes" {
     variables = {
       BUCKET_NAME    = var.bucket_name
       JOB_DEFINITION = var.job_definition
+      ENVIRONMENT = terraform.workspace
     }
   }
 }

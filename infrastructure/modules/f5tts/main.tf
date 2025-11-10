@@ -156,7 +156,7 @@ resource "aws_security_group" "batch_compute_sg" {
 
 # Job Queue
 resource "aws_batch_job_queue" "free_batch_job_queue" {
-  name     = "Free-job-queue"
+  name     = "Free-job-queue-${terraform.workspace}"
   state    = "ENABLED"
   priority = 1
   
@@ -167,7 +167,7 @@ resource "aws_batch_job_queue" "free_batch_job_queue" {
 }
 
 resource "aws_batch_job_queue" "starter_batch_job_queue" {
-  name     = "Starter-job-queue"
+  name     = "Starter-job-queue-${terraform.workspace}"
   state    = "ENABLED"
   priority = 2
   
@@ -178,7 +178,7 @@ resource "aws_batch_job_queue" "starter_batch_job_queue" {
 }
 
 resource "aws_batch_job_queue" "creator_batch_job_queue" {
-  name     = "Creator-job-queue"
+  name     = "Creator-job-queue-${terraform.workspace}"
   state    = "ENABLED"
   priority = 2
   
@@ -189,7 +189,7 @@ resource "aws_batch_job_queue" "creator_batch_job_queue" {
 }
 
 resource "aws_batch_job_queue" "enterprise_batch_job_queue" {
-  name     = "Enterprise-job-queue"
+  name     = "Enterprise-job-queue-${terraform.workspace}"
   state    = "ENABLED"
   priority = 2
   

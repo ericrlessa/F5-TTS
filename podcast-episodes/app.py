@@ -23,6 +23,8 @@ batch = boto3.client('batch', region_name='ca-central-1')
 
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 
+ENVIRONMENT = os.environ["ENVIRONMENT"]
+
 REGION_NAME = os.getenv("AWS_REGION", "ca-central-1")
 JOB_DEFINITION = os.environ.get("JOB_DEFINITION")
 
@@ -81,7 +83,10 @@ def submit_batch_job(encoded_message, estimated_duration, plan, episode):
     if not plan:
         raise Exception("Plan not defined!")
 
-    queue = f"{plan}-job-queue"
+    queue = f"{plan}-job-queue-{ENVIRONMENT}"
+
+    logger.info(f"Environment: {ENVIRONMENT}")
+    logger.info(f"queue: {queue}")
 
     attemptDurationSeconds = estimated_duration + 180
     if(attemptDurationSeconds < 600):

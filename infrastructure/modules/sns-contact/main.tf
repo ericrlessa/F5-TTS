@@ -19,7 +19,7 @@ resource "aws_sns_topic_subscription" "email_subscriptions" {
 }
 
 resource "aws_iam_user" "sns_user" {
-  name = "geniuspod-sns-publisher-user"
+  name = "geniuspod-sns-publisher-user-${terraform.workspace}"
 }
 
 data "aws_iam_policy_document" "sns_publish_policy" {
@@ -30,7 +30,7 @@ data "aws_iam_policy_document" "sns_publish_policy" {
 }
 
 resource "aws_iam_policy" "sns_publish_policy" {
-  name   = "sns-publish-policy"
+  name   = "sns-publish-policy-${terraform.workspace}"
   policy = data.aws_iam_policy_document.sns_publish_policy.json
 }
 

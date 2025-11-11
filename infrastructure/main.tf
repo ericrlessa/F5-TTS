@@ -44,8 +44,8 @@ module "f5tts_result_processing" {
   source = "./modules/f5tts-result-processing"
   processing_result_function_name = "${var.processing_result_function_name}-${terraform.workspace}"
   processing_result_handler_image = local.f5tts_result_processing_image
-  supabase_url = var.supabase_url
-  supabase_service_key = var.supabase_service_key
+  supabase_url = local.supabase_url
+  supabase_service_key = local.supabase_service_key
   sqs_queue_arn = module.f5tts_result_queue.sqs_queue_result_arn
 }
 
@@ -91,9 +91,9 @@ module "sns_contact" {
 
 module "cloudfront_domain" {
   source = "./modules/dns_cloudfront"
-  origin_domain_name = var.origin_domain_name
+  origin_domain_name = local.origin_domain_name
   domain_name = var.domain_name
-  origin_id = var.origin_id
+  origin_id = local.origin_id
 }
 
 module "batch_image_builder" {

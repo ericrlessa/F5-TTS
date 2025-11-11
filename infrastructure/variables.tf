@@ -17,6 +17,10 @@ locals {
   scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:${terraform.workspace}"
   bucket_name = terraform.workspace == "prod"  ?  var.bucket_name : "${var.bucket_name}-${terraform.workspace}"
   job_definition = "job-gpu-${terraform.workspace}"
+  supabase_url = terraform.workspace == "prod" ? var.supabase_url_prod : var.supabase_url_dev
+  supabase_service_key = terraform.workspace == "prod" ? var.supabase_service_key_prod : var.supabase_service_key_dev
+  origin_domain_name = terraform.workspace == "prod" ? var.origin_domain_name_prod : var.origin_domain_name_dev
+  origin_id = terraform.workspace == "prod" ? var.origin_id_prod : var.origin_id_dev
 }
 
 variable "bucket_name" {
@@ -59,11 +63,19 @@ variable "scraper_function_name" {
   default = "scraper"
 }
 
-variable "supabase_url" {
+variable "supabase_url_prod" {
   type    = string
 }
 
-variable "supabase_service_key" {
+variable "supabase_url_dev" {
+  type    = string
+}
+
+variable "supabase_service_key_prod" {
+  type    = string
+}
+
+variable "supabase_service_key_dev" {
   type    = string
 }
 
@@ -76,10 +88,18 @@ variable "domain_name" {
   type        = string
 }
 
-variable "origin_id" {
+variable "origin_id_prod" {
   type        = string
 }
 
-variable "origin_domain_name" {
+variable "origin_id_dev" {
+  type        = string
+}
+
+variable "origin_domain_name_prod" {
+  type        = string
+}
+
+variable "origin_domain_name_dev" {
   type        = string
 }

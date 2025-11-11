@@ -204,13 +204,13 @@ resource "aws_api_gateway_stage" "stage_env" {
 }
 
 resource "aws_api_gateway_api_key" "geniuspod_api_key" {
-  name = "geniuspod-api-key"
+  name = "geniuspod-api-key-${terraform.workspace}"
   description = "API Key for Geniuspod API"
   enabled     = true
 }
 
 resource "aws_api_gateway_usage_plan" "geniuspod_usage_plan" {
-  name        = "geniuspod-usage-plan"
+  name        = "geniuspod-usage-plan-${terraform.workspace}"
   description = "Usage plan for Geniuspod API"
 
   api_stages {

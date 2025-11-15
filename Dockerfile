@@ -23,6 +23,8 @@ RUN git submodule update --init --recursive \
     && pip install -e . --no-cache-dir \
     && pip install flask gunicorn
 
+RUN f5-tts_infer-cli
+
 ENV SHELL=/bin/bash
 
 VOLUME /root/.cache/huggingface/hub/

@@ -121,7 +121,7 @@ resource "aws_batch_compute_environment" "batch_compute_env" {
 }
 
 resource "aws_launch_template" "batch_launch_template" {
- name = "batch-launch-template-${terraform.workspace}"
+ name = "batch-launch-template-${var.ami_id}-${terraform.workspace}"
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -266,7 +266,8 @@ resource "aws_batch_job_definition" "simple_job" {
   platform_capabilities = ["EC2"]
 
   container_properties = jsonencode({
-    image = var.f5tts_image
+    image = "local-f5tts:latest"  # Use the local tagged image
+
     command = [
       "serve"
     ]

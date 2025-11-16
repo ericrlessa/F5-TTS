@@ -76,7 +76,7 @@ resource "aws_security_group" "image_builder" {
 resource "aws_imagebuilder_component" "pull_container" {
   name     = "pull-container-${terraform.workspace}"
   platform = "Linux"
-  version  = "1.0.2"  # Increment version
+  version  = "1.0.3"  # Increment version
 
   data = yamlencode({
     phases = [{
@@ -119,7 +119,9 @@ resource "aws_imagebuilder_component" "pull_container" {
               "echo \"Image: ${var.f5tts_image}\"",
               "docker pull ${var.f5tts_image}",
               "echo 'Container pulled successfully'",
-              "docker images ${var.f5tts_image}"
+              # Tag the image with a local name to avoid ECR checks
+              "docker tag ${var.f5tts_image} local-f5tts:latest",
+              "docker images"
             ]
           }
         }

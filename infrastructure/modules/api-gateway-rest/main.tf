@@ -37,21 +37,6 @@ resource "aws_api_gateway_resource" "voices" {
   path_part   = "{id}"
 }
 
-
-resource "aws_api_gateway_resource" "scraper" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = "scraper"
-}
-
-resource "aws_api_gateway_method" "scraper_method" {
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.scraper.id
-  http_method   = "POST"
-  authorization = "NONE"
-  api_key_required = true
-}
-
 resource "aws_api_gateway_method" "episodes_get" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.episodes.id
@@ -98,15 +83,6 @@ resource "aws_api_gateway_method" "voices_delete" {
   http_method   = "DELETE"
   authorization = "NONE"
   api_key_required = true
-}
-
-resource "aws_api_gateway_integration" "scraper_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_resource.scraper.id
-  http_method             = aws_api_gateway_method.scraper_method.http_method
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = var.scraper_integration_uri
 }
 
 resource "aws_api_gateway_integration" "episodes_integration_post" {
@@ -176,7 +152,6 @@ resource "aws_api_gateway_deployment" "deployment" {
       aws_api_gateway_integration.voices_integration_post.id,
       aws_api_gateway_integration.voices_integration_delete.id,
 
-      aws_api_gateway_integration.scraper_integration.id,
     ]))
   }
   
@@ -189,7 +164,6 @@ resource "aws_api_gateway_deployment" "deployment" {
       aws_api_gateway_integration.voices_integration_post,
       aws_api_gateway_integration.voices_integration_delete,
 
-      aws_api_gateway_integration.scraper_integration,
   ]
 
   lifecycle {
@@ -223,14 +197,6 @@ resource "aws_api_gateway_usage_plan_key" "main" {
   key_id        = aws_api_gateway_api_key.geniuspod_api_key.id
   key_type      = "API_KEY"
   usage_plan_id = aws_api_gateway_usage_plan.geniuspod_usage_plan.id
-}
-
-resource "aws_lambda_permission" "allow_apigw_scraper" {
-  statement_id  = "AllowInvokeFromApiGWScraper"
-  action        = "lambda:InvokeFunction"
-  function_name = var.scraper_function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/${terraform.workspace}/POST/scraper"
 }
 
 resource "aws_lambda_permission" "allow_apigw_voices" {

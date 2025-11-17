@@ -1,20 +1,15 @@
-from fastapi import FastAPI, Form, HTTPException
-from fastapi.responses import JSONResponse
-from mangum import Mangum
 import requests
 from bs4 import BeautifulSoup
 import re
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any
 from urllib.parse import urlparse
 import logging
 from dataclasses import dataclass
 import json
-import base64
+import boto3
 
-app = FastAPI()
-handler = Mangum(app)
+apigw_management = boto3.client('apigatewaymanagementapi')
 
-# Set up logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -192,24 +187,19 @@ class ContentExtractor:
         
         return metadata
 
-@app.post("/scraper")
-async def extract(
-    url: str = Form(...)
-):
-    logger.info(f"Received url: {url}")
+def handler(event, context):
+    connection_id = event['connectionId']
+    url = event['url']
+
+    logger.info(f"Received url: {url} connection_id: {connection_id}")
     
     try:
         if not url:
-            return {
-                'statusCode': 400,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({'error': 'URL parameter is required'})
-            }
+            send_message (connection_id, {
+                'status': 'error',
+                'message': 'URL parameter is required',
+            })
         
-        # Validate URL format
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
         
@@ -221,32 +211,33 @@ async def extract(
         
         result = extractor.extract_content_from_url(url, options)
         
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({
+        send_message (connection_id, {
+            'status': 'complete',
+            'results': {
                 'title': result['title'],
                 'content': result['content'],
                 'word_count': result['word_count'],
                 'success': result['success'],
                 'url': result['url']
-            })
-        }
+            }
+        })
         
     except requests.RequestException as e:
         logger.error(f"Request error: {e}")
-        return {
-            'statusCode': 400,
-            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': f'Failed to fetch URL: {str(e)}'})
-        }
+        send_message (connection_id, {
+            'status': 'error',
+            'message': f'Failed to fetch URL: {str(e)}',
+        })
+    
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
-        return {
-            'statusCode': 500,
-            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': f'Internal server error: {str(e)}'})
-        }
+        send_message (connection_id, {
+            'status': 'error',
+            'message': str(e),
+        })
+
+def send_message(connection_id, message):
+    apigw_management.post_to_connection(
+        ConnectionId=connection_id,
+        Data=json.dumps(message).encode('utf-8')
+    )

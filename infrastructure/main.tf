@@ -71,16 +71,21 @@ module "scraper" {
 }
 
 module "api_gateway" {
-  source = "./modules/api-gateway"
+  source = "./modules/api-gateway-rest"
 
   region = var.region
 
-  scraper_integration_uri = module.scraper.lambda_invoke_arn
   episodes_integration_uri = module.podcast_episodes.lambda_invoke_arn
   voices_integration_uri = module.voices.lambda_invoke_arn
 
   episodes_function_name = "${var.podcast_episodes_function_name}-${terraform.workspace}"
   voices_function_name = "${var.voices_function_name}-${terraform.workspace}"
+}
+
+module "api_gateway_websocket" {
+  source = "./modules/api-gateway-websocket"
+
+  scraper_integration_uri = module.scraper.lambda_invoke_arn
   scraper_function_name = "${var.scraper_function_name}-${terraform.workspace}"
 }
 

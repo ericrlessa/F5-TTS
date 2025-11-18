@@ -69,6 +69,7 @@ module "scraper" {
   scraper_function_name = "${var.scraper_function_name}-${terraform.workspace}"
   scraper_image = local.scraper_image
   websocket_execution_arn = module.api_gateway_websocket.execution_arn
+  websocket_endpoint = module.api_gateway_websocket.websocket_url_https
 }
 
 module "scraper_trigger" {
@@ -76,6 +77,9 @@ module "scraper_trigger" {
   scraper_trigger_function_name = "${var.scraper_trigger_function_name}-${terraform.workspace}"
   scraper_trigger_image = local.scraper_trigger_image
   scraper_function_arn = module.scraper.scraper_arn
+  scraper_function_name = "${var.scraper_function_name}-${terraform.workspace}"
+  websocket_execution_arn = module.api_gateway_websocket.execution_arn
+  websocket_endpoint = module.api_gateway_websocket.websocket_url_https
 }
 
 module "api_gateway" {
@@ -93,6 +97,7 @@ module "api_gateway" {
 module "api_gateway_websocket" {
   source = "./modules/api-gateway-websocket"
   scraper_integration_uri = module.scraper_trigger.scraper_trigger_invoke_arn
+  region = var.region
 }
 
 module "sns_contact" {

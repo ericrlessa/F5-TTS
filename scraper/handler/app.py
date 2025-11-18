@@ -7,8 +7,14 @@ import logging
 from dataclasses import dataclass
 import json
 import boto3
+import os
 
-apigw_management = boto3.client('apigatewaymanagementapi')
+
+
+API_ENDPOINT = os.environ['API_GATEWAY_ENDPOINT']
+
+apigw_management = boto3.client('apigatewaymanagementapi',
+                                endpoint_url=API_ENDPOINT)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -211,16 +217,7 @@ def handler(event, context):
         
         result = extractor.extract_content_from_url(url, options)
         
-        send_message (connection_id, {
-            'status': 'complete',
-            'results': {
-                'title': result['title'],
-                'content': result['content'],
-                'word_count': result['word_count'],
-                'success': result['success'],
-                'url': result['url']
-            }
-        })
+        send_large_content (connection_id, result)
         
     except requests.RequestException as e:
         logger.error(f"Request error: {e}")
@@ -241,3 +238,27 @@ def send_message(connection_id, message):
         ConnectionId=connection_id,
         Data=json.dumps(message).encode('utf-8')
     )
+
+def send_large_content(connection_id, results):
+    send_message(connection_id, {
+        'status': 'complete_metadata',
+        'results': {
+            'title': results['title'],
+            'url': results['url'],
+            'word_count': results['word_count'],
+            'success': results['success'],
+            'total_size': len(results['content'])
+        }
+    })
+    
+    content = results['content']
+    chunk_size = 100000  # ~100KB per chunk
+    
+    for i in range(0, len(content), chunk_size):
+        chunk = content[i:i + chunk_size]
+        send_message(connection_id, {
+            'status': 'content_chunk',
+            'chunk_index': i // chunk_size,
+            'content': chunk,
+            'is_final': (i + chunk_size) >= len(content)
+        })

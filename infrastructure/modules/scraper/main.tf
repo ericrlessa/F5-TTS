@@ -13,6 +13,13 @@ resource "aws_lambda_function" "scraper" {
   image_uri     = var.scraper_image
   role          = aws_iam_role.lambda_exec_role.arn
   timeout       = 900
+
+  environment {
+    variables = {      
+      API_GATEWAY_ENDPOINT = var.websocket_endpoint
+      LOG_LEVEL            = "INFO"
+    }
+  }
 }
 
 resource "aws_iam_role" "lambda_exec_role" {
@@ -45,12 +52,4 @@ resource "aws_iam_role_policy" "websocket_send_message" {
       Resource = "${var.websocket_execution_arn}/*/*"
     }]
   })
-}
-
-resource "aws_lambda_permission" "api_gw" {
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = var.scraper_function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${var.websocket_execution_arn}/*"
 }

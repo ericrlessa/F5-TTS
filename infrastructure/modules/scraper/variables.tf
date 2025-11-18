@@ -10,3 +10,8 @@ variable "scraper_image" {
 variable "websocket_execution_arn" {
   type = string
 }
+
+variable "websocket_endpoint" {
+  type = string
+}
+

@@ -15,6 +15,7 @@ locals {
   podcast_episodes_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/podcast-episodes:${terraform.workspace}"
   voices_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/voices:${terraform.workspace}"
   scraper_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper:${terraform.workspace}"
+  scraper_trigger_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/scraper-trigger:${terraform.workspace}"
   bucket_name = terraform.workspace == "prod"  ?  var.bucket_name : "${var.bucket_name}-${terraform.workspace}"
   job_definition = "job-gpu-${terraform.workspace}"
   supabase_url = terraform.workspace == "prod" ? var.supabase_url_prod : var.supabase_url_dev
@@ -61,6 +62,11 @@ variable "processing_result_function_name" {
 variable "scraper_function_name" {
   type    = string
   default = "scraper"
+}
+
+variable "scraper_trigger_function_name" {
+  type    = string
+  default = "scraper-trigger"
 }
 
 variable "supabase_url_prod" {

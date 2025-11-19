@@ -1,5 +1,5 @@
 resource "aws_apigatewayv2_api" "websocket_api" {
-  name          = "Geniuspod-websocket-api"
+  name          = "Geniuspod-websocket-api-${terraform.workspace}"
   protocol_type = "WEBSOCKET"
   route_selection_expression = "$request.body.action"
   description   = "Scraper Websocket API"

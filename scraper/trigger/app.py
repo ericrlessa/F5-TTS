@@ -23,16 +23,8 @@ def handler(event, context):
     connection_id = event['requestContext']['connectionId']
     route_key = event['requestContext']['routeKey']
 
-    
     if route_key == '$connect':
-        token = event['queryStringParameters'].get('token')
-        verify_supabase_token(token)
-
-        if not verify_supabase_token(token):
-            return {'statusCode': 403}
-        
         logger.info("connected!")
-        
         return {'statusCode': 200}
     elif route_key == 'scrape':
         try:
@@ -86,22 +78,3 @@ def send_error(connection_id, error_message):
         'message': error_message
     })
     return {'statusCode': 400}
-
-#TODO AUTHENTICATION
-def verify_supabase_token(token):
-    JWT_SECRET = "your-supabase-jwt-secret"
-    SUPABASE_URL = "https://your-project.supabase.co"
-    
-    try:
-        print(token)
-        return True
-        # decoded = jwt.decode(
-        #     token,
-        #     JWT_SECRET,
-        #     algorithms=["HS256"],
-        #     audience="authenticated",
-        #     issuer=SUPABASE_URL
-        # )
-        # return decoded
-    except Exception as e:
-        return None

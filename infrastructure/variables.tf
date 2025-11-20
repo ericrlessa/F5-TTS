@@ -116,10 +116,18 @@ variable "authorizer_function_name" {
   default = "authorizer"
 }
 
-variable "jwt_secret" {
+variable "jwt_secret_dev" {
   type = string
 }
 
-variable "issuer_url_jwt" {
+variable "issuer_url_jwt_dev" {
+  type = string
+}
+
+variable "jwt_secret_prod" {
+  type = string
+}
+
+variable "issuer_url_jwt_prod" {
   type = string
 }

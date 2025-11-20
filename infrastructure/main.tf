@@ -103,9 +103,9 @@ module "api_gateway_websocket" {
 
 module "authorizer" {
   source = "./modules/authorizer"
-  authorizer_function_name = var.authorizer_function_name
-  issuer_url_jwt = var.issuer_url_jwt
-  jwt_secret = var.jwt_secret
+  authorizer_function_name = "${var.authorizer_function_name}-${terraform.workspace}"
+  issuer_url_jwt = terraform.workspace == "prod" ? var.issuer_url_jwt_prod : var.issuer_url_jwt_dev
+  jwt_secret = terraform.workspace == "prod" ? var.jwt_secret_prod : var.jwt_secret_dev
   authorizer_image = local.authorizer_image
   websocket_execution_arn = module.api_gateway_websocket.execution_arn
 }

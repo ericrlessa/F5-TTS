@@ -22,6 +22,7 @@ locals {
   supabase_service_key = terraform.workspace == "prod" ? var.supabase_service_key_prod : var.supabase_service_key_dev
   origin_domain_name = terraform.workspace == "prod" ? var.origin_domain_name_prod : var.origin_domain_name_dev
   origin_id = terraform.workspace == "prod" ? var.origin_id_prod : var.origin_id_dev
+  authorizer_image = "${var.account}.dkr.ecr.${var.region}.amazonaws.com/authorizer:${terraform.workspace}"
 }
 
 variable "bucket_name" {
@@ -108,4 +109,17 @@ variable "origin_domain_name_prod" {
 
 variable "origin_domain_name_dev" {
   type        = string
+}
+
+variable "authorizer_function_name" {
+  type = string
+  default = "authorizer"
+}
+
+variable "jwt_secret" {
+  type = string
+}
+
+variable "issuer_url_jwt" {
+  type = string
 }

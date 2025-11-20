@@ -98,6 +98,16 @@ module "api_gateway_websocket" {
   source = "./modules/api-gateway-websocket"
   scraper_integration_uri = module.scraper_trigger.scraper_trigger_invoke_arn
   region = var.region
+  websocket_authorizer_lambda_uri = module.authorizer.authorizer_invoke_arn
+}
+
+module "authorizer" {
+  source = "./modules/authorizer"
+  authorizer_function_name = var.authorizer_function_name
+  issuer_url_jwt = var.issuer_url_jwt
+  jwt_secret = var.jwt_secret
+  authorizer_image = local.authorizer_image
+  websocket_execution_arn = module.api_gateway_websocket.execution_arn
 }
 
 module "sns_contact" {

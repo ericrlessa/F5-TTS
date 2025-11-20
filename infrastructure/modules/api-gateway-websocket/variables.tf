@@ -5,3 +5,7 @@ variable "region" {
 variable "scraper_integration_uri" {
   type = string
 }
+
+variable "websocket_authorizer_lambda_uri" {
+  type = string
+}

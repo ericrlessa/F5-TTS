@@ -33,6 +33,22 @@ from f5_tts.infer.utils_infer import transcribe
 from f5_tts.model.utils import convert_char_to_pinyin
 
 
+def _safe_project_path(base: str, name: str) -> str:
+    """Return the resolved absolute path of base/name, raising ValueError if name
+    is absolute, contains a null byte, or resolves outside base."""
+    if not name or os.path.isabs(name) or "\x00" in name:
+        raise ValueError(f"invalid project_name: {name!r}")
+    # Strip path separators and control characters to a plain filename component.
+    name = re.sub(r"[/\\]", "", name).strip()
+    if not name or name in (".", ".."):
+        raise ValueError(f"invalid project_name: {name!r}")
+    candidate = os.path.realpath(os.path.join(base, name))
+    base_real = os.path.realpath(base)
+    if not (candidate + os.sep).startswith(base_real + os.sep):
+        raise ValueError(f"project_name escapes base directory: {name!r}")
+    return candidate
+
+
 training_process = None
 system = platform.system()
 python_executable = sys.executable or "python"
@@ -80,7 +96,7 @@ def save_settings(
     logger,
     ch_8bit_adam,
 ):
-    path_project = os.path.join(path_project_ckpts, project_name)
+    path_project = _safe_project_path(path_project_ckpts, project_name)
     os.makedirs(path_project, exist_ok=True)
     file_setting = os.path.join(path_project, "setting.json")
 
@@ -113,7 +129,7 @@ def save_settings(
 # Load settings from a JSON file
 def load_settings(project_name):
     project_name = project_name.replace("_pinyin", "").replace("_char", "")
-    path_project = os.path.join(path_project_ckpts, project_name)
+    path_project = _safe_project_path(path_project_ckpts, project_name)
     file_setting = os.path.join(path_project, "setting.json")
 
     # Default settings
@@ -178,50 +194,12 @@ def get_audio_duration(audio_path):
     return audio.shape[1] / sample_rate
 
 
-def clear_text(text):
-    """Clean and prepare text by lowering the case and stripping whitespace."""
-    return text.lower().strip()
-
-
-def get_rms(
-    y,
-    frame_length=2048,
-    hop_length=512,
-    pad_mode="constant",
-):  # https://github.com/RVC-Boss/GPT-SoVITS/blob/main/tools/slicer2.py
-    padding = (int(frame_length // 2), int(frame_length // 2))
-    y = np.pad(y, padding, mode=pad_mode)
-
-    axis = -1
-    # put our new within-frame axis at the end for now
-    out_strides = y.strides + tuple([y.strides[axis]])
-    # Reduce the shape on the framing axis
-    x_shape_trimmed = list(y.shape)
-    x_shape_trimmed[axis] -= frame_length - 1
-    out_shape = tuple(x_shape_trimmed) + tuple([frame_length])
-    xw = np.lib.stride_tricks.as_strided(y, shape=out_shape, strides=out_strides)
-    if axis < 0:
-        target_axis = axis - 1
-    else:
-        target_axis = axis + 1
-    xw = np.moveaxis(xw, -1, target_axis)
-    # Downsample along the target axis
-    slices = [slice(None)] * xw.ndim
-    slices[axis] = slice(0, None, hop_length)
-    x = xw[tuple(slices)]
-
-    # Calculate power
-    power = np.mean(np.abs(x) ** 2, axis=-2, keepdims=True)
-
-    return np.sqrt(power)
-
-
 class Slicer:  # https://github.com/RVC-Boss/GPT-SoVITS/blob/main/tools/slicer2.py
     def __init__(
         self,
         sr: int,
         threshold: float = -40.0,
-        min_length: int = 2000,
+        min_length: int = 20000,  # 20 seconds
         min_interval: int = 300,
         hop_size: int = 20,
         max_sil_kept: int = 2000,
@@ -252,7 +230,7 @@ class Slicer:  # https://github.com/RVC-Boss/GPT-SoVITS/blob/main/tools/slicer2.
             samples = waveform
         if samples.shape[0] <= self.min_length:
             return [waveform]
-        rms_list = get_rms(y=samples, frame_length=self.win_size, hop_length=self.hop_size).squeeze(0)
+        rms_list = librosa.feature.rms(y=samples, frame_length=self.win_size, hop_length=self.hop_size).squeeze(0)
         sil_tags = []
         silence_start = None
         clip_start = 0
@@ -306,8 +284,7 @@ class Slicer:  # https://github.com/RVC-Boss/GPT-SoVITS/blob/main/tools/slicer2.
             silence_end = min(total_frames, silence_start + self.max_sil_kept)
             pos = rms_list[silence_start : silence_end + 1].argmin() + silence_start
             sil_tags.append((pos, total_frames + 1))
-        # Apply and return slices.
-        ####音频+起始时间+终止时间
+        # Apply and return slices: [chunk, start, end]
         if len(sil_tags) == 0:
             return [[waveform, 0, int(total_frames * self.hop_size)]]
         else:
@@ -395,7 +372,7 @@ def start_training(
         torch.cuda.empty_cache()
         tts_api = None
 
-    path_project = os.path.join(path_data, dataset_name)
+    path_project = _safe_project_path(path_data, dataset_name)
 
     if not os.path.isdir(path_project):
         yield (
@@ -649,14 +626,15 @@ def get_list_projects():
 
 def create_data_project(name, tokenizer_type):
     name += "_" + tokenizer_type
-    os.makedirs(os.path.join(path_data, name), exist_ok=True)
-    os.makedirs(os.path.join(path_data, name, "dataset"), exist_ok=True)
+    project_dir = _safe_project_path(path_data, name)
+    os.makedirs(project_dir, exist_ok=True)
+    os.makedirs(os.path.join(project_dir, "dataset"), exist_ok=True)
     project_list, projects_selelect = get_list_projects()
     return gr.update(choices=project_list, value=name)
 
 
 def transcribe_all(name_project, audio_files, language, user=False, progress=gr.Progress()):
-    path_project = os.path.join(path_data, name_project)
+    path_project = _safe_project_path(path_data, name_project)
     path_dataset = os.path.join(path_project, "dataset")
     path_project_wavs = os.path.join(path_project, "wavs")
     file_metadata = os.path.join(path_project, "metadata.csv")
@@ -707,7 +685,7 @@ def transcribe_all(name_project, audio_files, language, user=False, progress=gr.
 
             try:
                 text = transcribe(file_segment, language)
-                text = text.lower().strip().replace('"', "")
+                text = text.strip()
 
                 data += f"{name_segment}|{text}\n"
 
@@ -765,7 +743,7 @@ def get_correct_audio_path(
 
 
 def create_metadata(name_project, ch_tokenizer, progress=gr.Progress()):
-    path_project = os.path.join(path_data, name_project)
+    path_project = _safe_project_path(path_data, name_project)
     path_project_wavs = os.path.join(path_project, "wavs")
     file_metadata = os.path.join(path_project, "metadata.csv")
     file_raw = os.path.join(path_project, "raw.arrow")
@@ -816,7 +794,7 @@ def create_metadata(name_project, ch_tokenizer, progress=gr.Progress()):
             error_files.append([file_audio, "very short text length 3"])
             continue
 
-        text = clear_text(text)
+        text = text.strip()
         text = convert_char_to_pinyin([text], polyphone=True)[0]
 
         audio_path_list.append(file_audio)
@@ -835,9 +813,10 @@ def create_metadata(name_project, ch_tokenizer, progress=gr.Progress()):
     min_second = round(min(duration_list), 2)
     max_second = round(max(duration_list), 2)
 
-    with ArrowWriter(path=file_raw, writer_batch_size=1) as writer:
+    with ArrowWriter(path=file_raw) as writer:
         for line in progress.tqdm(result, total=len(result), desc="prepare data"):
             writer.write(line)
+        writer.finalize()
 
     with open(file_duration, "w") as f:
         json.dump({"duration": duration_list}, f, ensure_ascii=False)
@@ -888,7 +867,7 @@ def calculate_train(
     num_warmup_updates,
     finetune,
 ):
-    path_project = os.path.join(path_data, name_project)
+    path_project = _safe_project_path(path_data, name_project)
     file_duration = os.path.join(path_project, "duration.json")
 
     hop_length = 256
@@ -1041,7 +1020,7 @@ def vocab_extend(project_name, symbols, model_type):
         return "Symbols empty!"
 
     name_project = project_name
-    path_project = os.path.join(path_data, name_project)
+    path_project = _safe_project_path(path_data, name_project)
     file_vocab_project = os.path.join(path_project, "vocab.txt")
 
     file_vocab = os.path.join(path_data, "Emilia_ZH_EN_pinyin/vocab.txt")
@@ -1087,7 +1066,7 @@ def vocab_extend(project_name, symbols, model_type):
     vocab_size_new = len(miss_symbols)
 
     dataset_name = name_project.replace("_pinyin", "").replace("_char", "")
-    new_ckpt_path = os.path.join(path_project_ckpts, dataset_name)
+    new_ckpt_path = _safe_project_path(path_project_ckpts, dataset_name)
     os.makedirs(new_ckpt_path, exist_ok=True)
 
     # Add pretrained_ prefix to model when copying for consistency with finetune_cli.py
@@ -1101,7 +1080,7 @@ def vocab_extend(project_name, symbols, model_type):
 
 def vocab_check(project_name, tokenizer_type):
     name_project = project_name
-    path_project = os.path.join(path_data, name_project)
+    path_project = _safe_project_path(path_data, name_project)
 
     file_metadata = os.path.join(path_project, "metadata.csv")
 
@@ -1127,7 +1106,7 @@ def vocab_check(project_name, tokenizer_type):
         if len(sp) != 2:
             continue
 
-        text = sp[1].lower().strip()
+        text = sp[1].strip()
         if tokenizer_type == "pinyin":
             text = convert_char_to_pinyin([text], polyphone=True)[0]
 
@@ -1148,7 +1127,7 @@ def vocab_check(project_name, tokenizer_type):
 
 def get_random_sample_prepare(project_name):
     name_project = project_name
-    path_project = os.path.join(path_data, name_project)
+    path_project = _safe_project_path(path_data, name_project)
     file_arrow = os.path.join(path_project, "raw.arrow")
     if not os.path.isfile(file_arrow):
         return "", None
@@ -1161,7 +1140,7 @@ def get_random_sample_prepare(project_name):
 
 def get_random_sample_transcribe(project_name):
     name_project = project_name
-    path_project = os.path.join(path_data, name_project)
+    path_project = _safe_project_path(path_data, name_project)
     file_metadata = os.path.join(path_project, "metadata.csv")
     if not os.path.isfile(file_metadata):
         return "", None
@@ -1234,8 +1213,8 @@ def infer(
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
         tts_api.infer(
             ref_file=ref_audio,
-            ref_text=ref_text.lower().strip(),
-            gen_text=gen_text.lower().strip(),
+            ref_text=ref_text.strip(),
+            gen_text=gen_text.strip(),
             nfe_step=nfe_step,
             speed=speed,
             remove_silence=remove_silence,

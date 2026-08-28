@@ -324,7 +324,7 @@ def run_asr_wer(args):
     punctuation_all = punctuation + string.punctuation
     wer_results = []
 
-    from jiwer import compute_measures
+    from jiwer import process_words
 
     for gen_wav, prompt_wav, truth in tqdm(test_set):
         if lang == "zh":
@@ -354,13 +354,13 @@ def run_asr_wer(args):
             truth = truth.lower()
             hypo = hypo.lower()
 
-        measures = compute_measures(truth, hypo)
-        wer = measures["wer"]
+        measures = process_words(truth, hypo)
+        wer = measures.wer
 
         # ref_list = truth.split(" ")
-        # subs = measures["substitutions"] / len(ref_list)
-        # dele = measures["deletions"] / len(ref_list)
-        # inse = measures["insertions"] / len(ref_list)
+        # subs = measures.substitutions / len(ref_list)
+        # dele = measures.deletions / len(ref_list)
+        # inse = measures.insertions / len(ref_list)
 
         wer_results.append(
             {
@@ -395,14 +395,21 @@ def run_sim(args):
         wav1, sr1 = torchaudio.load(gen_wav)
         wav2, sr2 = torchaudio.load(prompt_wav)
 
-        resample1 = torchaudio.transforms.Resample(orig_freq=sr1, new_freq=16000)
-        resample2 = torchaudio.transforms.Resample(orig_freq=sr2, new_freq=16000)
-        wav1 = resample1(wav1)
-        wav2 = resample2(wav2)
-
         if use_gpu:
             wav1 = wav1.cuda(device)
             wav2 = wav2.cuda(device)
+
+        if sr1 != 16000:
+            resample1 = torchaudio.transforms.Resample(orig_freq=sr1, new_freq=16000)
+            if use_gpu:
+                resample1 = resample1.cuda(device)
+            wav1 = resample1(wav1)
+        if sr2 != 16000:
+            resample2 = torchaudio.transforms.Resample(orig_freq=sr2, new_freq=16000)
+            if use_gpu:
+                resample2 = resample2.cuda(device)
+            wav2 = resample2(wav2)
+
         with torch.no_grad():
             emb1 = model(wav1)
             emb2 = model(wav2)

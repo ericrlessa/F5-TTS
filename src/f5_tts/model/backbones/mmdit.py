@@ -6,8 +6,11 @@ nt - text sequence
 nw - raw wave length
 d - dimension
 """
+# ruff: noqa: F722 F821
 
 from __future__ import annotations
+
+import threading
 
 import torch
 from torch import nn
@@ -36,7 +39,7 @@ class TextEmbedding(nn.Module):
         self.precompute_max_pos = 1024
         self.register_buffer("freqs_cis", precompute_freqs_cis(out_dim, self.precompute_max_pos), persistent=False)
 
-    def forward(self, text: int["b nt"], drop_text=False) -> int["b nt d"]:  # noqa: F722
+    def forward(self, text: int["b nt"], drop_text=False) -> int["b nt d"]:
         text = text + 1  # use 0 as filler token. preprocess of batch pad -1, see list_str_to_idx()
         if self.mask_padding:
             text_mask = text == 0
@@ -69,7 +72,7 @@ class AudioEmbedding(nn.Module):
         self.linear = nn.Linear(2 * in_dim, out_dim)
         self.conv_pos_embed = ConvPositionEmbedding(out_dim)
 
-    def forward(self, x: float["b n d"], cond: float["b n d"], drop_audio_cond=False):  # noqa: F722
+    def forward(self, x: float["b n d"], cond: float["b n d"], drop_audio_cond=False):
         if drop_audio_cond:
             cond = torch.zeros_like(cond)
         x = torch.cat((x, cond), dim=-1)
@@ -95,12 +98,14 @@ class MMDiT(nn.Module):
         text_num_embeds=256,
         text_mask_padding=True,
         qk_norm=None,
+        checkpoint_activations=False,
+        attn_backend="torch",
+        attn_mask_enabled=False,
     ):
         super().__init__()
 
         self.time_embed = TimestepEmbedding(dim)
         self.text_embed = TextEmbedding(dim, text_num_embeds, mask_padding=text_mask_padding)
-        self.text_cond, self.text_uncond = None, None  # text cache
         self.audio_embed = AudioEmbedding(mel_dim, dim)
 
         self.rotary_embed = RotaryEmbedding(dim_head)
@@ -118,6 +123,8 @@ class MMDiT(nn.Module):
                     ff_mult=ff_mult,
                     context_pre_only=i == depth - 1,
                     qk_norm=qk_norm,
+                    attn_backend=attn_backend,
+                    attn_mask_enabled=attn_mask_enabled,
                 )
                 for i in range(depth)
             ]
@@ -125,7 +132,36 @@ class MMDiT(nn.Module):
         self.norm_out = AdaLayerNorm_Final(dim)  # final modulation
         self.proj_out = nn.Linear(dim, mel_dim)
 
+        self.checkpoint_activations = checkpoint_activations
+
         self.initialize_weights()
+
+    # `_cache_local` is lazily initialized on first inference-time cache write so that
+    # training models (which never touch the cache) stay deepcopy-friendly for EMA.
+    def _get_cache_local(self):
+        cache = self.__dict__.get("_cache_local")
+        if cache is None:
+            cache = threading.local()
+            self.__dict__["_cache_local"] = cache
+        return cache
+
+    @property
+    def text_cond(self):
+        cache = self.__dict__.get("_cache_local")
+        return getattr(cache, "text_cond", None) if cache is not None else None
+
+    @text_cond.setter
+    def text_cond(self, value):
+        self._get_cache_local().text_cond = value
+
+    @property
+    def text_uncond(self):
+        cache = self.__dict__.get("_cache_local")
+        return getattr(cache, "text_uncond", None) if cache is not None else None
+
+    @text_uncond.setter
+    def text_uncond(self, value):
+        self._get_cache_local().text_uncond = value
 
     def initialize_weights(self):
         # Zero-out AdaLN layers in MMDiT blocks:
@@ -140,6 +176,13 @@ class MMDiT(nn.Module):
         nn.init.constant_(self.norm_out.linear.bias, 0)
         nn.init.constant_(self.proj_out.weight, 0)
         nn.init.constant_(self.proj_out.bias, 0)
+
+    def ckpt_wrapper(self, module):
+        def ckpt_forward(*inputs):
+            outputs = module(*inputs)
+            return outputs
+
+        return ckpt_forward
 
     def get_input_embed(
         self,
@@ -170,11 +213,11 @@ class MMDiT(nn.Module):
 
     def forward(
         self,
-        x: float["b n d"],  # nosied input audio  # noqa: F722
-        cond: float["b n d"],  # masked cond audio  # noqa: F722
-        text: int["b nt"],  # text  # noqa: F722
-        time: float["b"] | float[""],  # time step  # noqa: F821 F722
-        mask: bool["b n"] | None = None,  # noqa: F722
+        x: float["b n d"],  # nosied input audio
+        cond: float["b n d"],  # masked cond audio
+        text: int["b nt"],  # text
+        time: float["b"] | float[""],  # time step
+        mask: bool["b n"] | None = None,
         drop_audio_cond: bool = False,  # cfg for cond audio
         drop_text: bool = False,  # cfg for text
         cfg_infer: bool = False,  # cfg inference, pack cond & uncond forward
@@ -186,6 +229,7 @@ class MMDiT(nn.Module):
 
         # t: conditioning (time), c: context (text + masked cond audio), x: noised input audio
         t = self.time_embed(time)
+        c_mask = (text + 1) != 0  # True = valid, False = padding (-1 tokens)
         if cfg_infer:  # pack cond & uncond forward: b n d -> 2b n d
             x_cond, c_cond = self.get_input_embed(x, cond, text, drop_audio_cond=False, drop_text=False, cache=cache)
             x_uncond, c_uncond = self.get_input_embed(x, cond, text, drop_audio_cond=True, drop_text=True, cache=cache)
@@ -193,6 +237,7 @@ class MMDiT(nn.Module):
             c = torch.cat((c_cond, c_uncond), dim=0)
             t = torch.cat((t, t), dim=0)
             mask = torch.cat((mask, mask), dim=0) if mask is not None else None
+            c_mask = torch.cat((c_mask, c_mask), dim=0)
         else:
             x, c = self.get_input_embed(
                 x, cond, text, drop_audio_cond=drop_audio_cond, drop_text=drop_text, cache=cache
@@ -204,7 +249,12 @@ class MMDiT(nn.Module):
         rope_text = self.rotary_embed.forward_from_seq_len(text_len)
 
         for block in self.transformer_blocks:
-            c, x = block(x, c, t, mask=mask, rope=rope_audio, c_rope=rope_text)
+            if self.checkpoint_activations:
+                c, x = torch.utils.checkpoint.checkpoint(
+                    self.ckpt_wrapper(block), x, c, t, mask, rope_audio, rope_text, c_mask, use_reentrant=False
+                )
+            else:
+                c, x = block(x, c, t, mask=mask, rope=rope_audio, c_rope=rope_text, c_mask=c_mask)
 
         x = self.norm_out(x, t)
         output = self.proj_out(x)

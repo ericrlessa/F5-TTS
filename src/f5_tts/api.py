@@ -119,7 +119,7 @@ class F5TTS:
         seed_everything(seed)
         self.seed = seed
 
-        ref_file, ref_text = preprocess_ref_audio_text(ref_file, ref_text)
+        ref_file, ref_text = preprocess_ref_audio_text(ref_file, ref_text, show_info=show_info)
 
         wav, sr, spec = infer_process(
             ref_file,
@@ -154,8 +154,8 @@ if __name__ == "__main__":
 
     wav, sr, spec = f5tts.infer(
         ref_file=str(files("f5_tts").joinpath("infer/examples/basic/basic_ref_en.wav")),
-        ref_text="some call me nature, others call me mother nature.",
-        gen_text="""I don't really care what you call me. I've been a silent spectator, watching species evolve, empires rise and fall. But always remember, I am mighty and enduring. Respect me and I'll nurture you; ignore me and you shall face the consequences.""",
+        ref_text="Some call me nature, others call me mother nature.",
+        gen_text="I don't really care what you call me. I've been a silent spectator, watching species evolve, empires rise and fall. But always remember, I am mighty and enduring.",
         file_wave=str(files("f5_tts").joinpath("../../tests/api_out.wav")),
         file_spec=str(files("f5_tts").joinpath("../../tests/api_out.png")),
         seed=None,
